@@ -14,13 +14,17 @@ MeroSwasthya.sln
 ├─ src/BuildingBlocks/MeroSwasthya.Shared   envelope, AppException + ErrorCode (A.3), JSON conventions,
 │                                           IClock, uuid v5 ids, cursors, IModule / IModuleInitializer,
 │                                           ICurrentUser, Authz, JwtSettings + SigningKeys, FeatureFlags,
-│                                           FluentValidation filter, ModuleDb (DbContext-per-schema)
+│                                           FluentValidation filter, ModuleDb (DbContext-per-schema),
+│                                           JsonColumn (jsonb value objects), in-process domain events
 ├─ src/Modules/Catalog    schema catalog    facilities (+ nearby), codelists + version, /rules, /config
 ├─ src/Modules/Auth       schema auth       OTP, PIN (Argon2id), JWT access + temp, refresh rotation,
 │                                           invite activation, /me, ICurrentUser implementation
 ├─ src/Modules/Patients   schema patients   patients CRUD, access policy, summary + timeline builders
-├─ src/Modules/Grants     (placeholder)     access grants / QR / audit          → next session
-├─ src/Modules/Clinical   (placeholder)     visits, prescriptions, documents
+├─ src/Modules/Audit      schema audit      AuditEntry, IAuditWriter, record_viewed observer, GET …/audit
+├─ src/Modules/Grants     schema grants     QR share codes (grant-key JWT), redeem bundle, revoke,
+│                                           IPatientGrantSource + IGrantAuthorization
+├─ src/Modules/Clinical   schema clinical   visits (+ prescriptions), documents (MinIO / local disk),
+│                                           summary + timeline contributions
 ├─ src/Modules/Maternal   (placeholder)     pregnancies, ANC contacts, triage, deliveries,
 │                                           immunisations, growth
 ├─ src/Modules/Reminders  (placeholder)     reminders, mock SMS outbox
@@ -33,11 +37,11 @@ Dependency direction (project references) — arrows point at what a module may 
 
 ```
             Shared  ◄──────────── every project
-Catalog ◄── Patients ◄── Grants, Clinical, Maternal, Reminders, Sync
-   ▲            ▲
+Catalog ◄── Patients ◄── Audit ◄── Grants, Clinical      (Maternal will use Audit too)
+   ▲            ▲  ◄──────────── Maternal, Reminders, Sync
    └── Clinical, Maternal (labels, facilities, rules)
-Auth    (depends on Shared only; other modules reach it through Shared.ICurrentUser
-         or Auth.Contracts.IUserDirectory)
+Auth    (depends on Shared only; reached through Shared.ICurrentUser, Auth.Contracts.IUserDirectory,
+         Auth.Contracts.IPinVerifier — Grants uses the last one for the printed card)
 ```
 
 `Patients` never references the modules that extend it (enforced by `ArchitectureTests`). They plug
@@ -70,9 +74,15 @@ build's tests if an implementation type leaks.
 | `IRulesProvider` | Catalog | Catalog | the A.5 document (Maternal parses it) |
 | `IPatientAccess` | Patients | Patients | owner / read / append checks → 404, 403 FORBIDDEN, 403 GRANT_EXPIRED |
 | `IPatientDirectory` | Patients | Patients | server-side jobs that bypass access checks |
-| `IPatientGrantSource` | Patients | **Grants (next)** | "does this health worker hold an active grant?" |
-| `IPatientSummaryContributor` | Patients | **Clinical, Maternal** | fill currentMedicines, lastVitals, activePregnancy, … |
-| `ITimelineContributor` | Patients | **Clinical, Maternal** | timeline items of their own kinds |
+| `IPatientGrantSource` | Patients | Grants | "does this health worker hold an active grant?" (level + expired flag) |
+| `IPatientSummaryContributor` | Patients | Clinical (Maternal next) | currentMedicines, lastVitals, activeProblems.since, … |
+| `ITimelineContributor` | Patients | Clinical (Maternal next) | timeline items of their own kinds |
+| `IPatientReadObserver` | Patients | Audit | `record_viewed` when a non-owner reads a patient |
+| `IActivePregnancySource` | Patients | **Maternal (next)** | `pregnancy` + `ancContacts` in the redeem bundle |
+| `IAuditWriter` | Audit | Audit | grant_created / redeemed / revoked, visit_added, document_added (contact_recorded next) |
+| `IGrantAuthorization` | Grants | Grants | `CanReadPatientAsync` / `CanAppendPatientAsync` booleans |
+| `IPinVerifier` | Auth | Auth | patient PIN check for the A.7 printed card (shares the lockout) |
+| `IDomainEventPublisher` | Shared | Shared | in-process events, e.g. Clinical's `FollowUpScheduled` → Reminders (next) |
 | `IPatientSummaryService`, `IPatientTimelineService` | Patients | Patients | redeem bundle (Grants) |
 
 Multiple implementations of a contribution interface are all resolved (`IEnumerable<T>`); with none
@@ -148,3 +158,80 @@ registered the feature degrades to the empty shape (e.g. an empty timeline page)
 * **Config**: `appsettings.json` → `appsettings.{Environment}.json` → environment (`Section__Key`,
   plus the spec aliases `JWT_SECRET`, `GRANT_SECRET`, `SMS_MODE`, `AI_MODE`, `OTP_DEMO`,
   `DATABASE_URL`) → command line. See `.env.example`.
+
+## 7. Patient access, grants and audit
+
+**One decision point.** Every endpoint that touches a patient's data asks
+`Patients.Contracts.IPatientAccess` (`RequireReadAsync` / `RequireAppendAsync` / `RequireOwnerAsync`).
+It loads the patient (404 when missing or soft-deleted), grants `Owner` to the owner, and for a
+provider/FCHV asks every registered `IPatientGrantSource`. It maps the result to the A.3 errors:
+none → `403 FORBIDDEN`; a redeemed grant whose 24 h window ran out → `403 GRANT_EXPIRED`.
+
+**Grants plug in, Patients does not reach out.** The Grants module registers `PatientGrantSource`
+(`IPatientGrantSource`). An *active* grant is redeemed by the caller, not revoked, and has
+`accessUntil > now`; scope `append` → `Append`, `read` → `Read`. That single registration is what makes
+granted patients appear in a provider's `GET /patients`, opens `GET /patients/:id` and the timeline,
+and lets Clinical's visit/document endpoints work — without Patients or Clinical referencing Grants.
+
+**`Grants.Contracts.IGrantAuthorization`** exposes the same rule as booleans for modules that only
+need yes/no (e.g. a background job):
+
+```csharp
+Task<bool> CanReadPatientAsync(string userId, string patientId);   // owner OR active grant (any scope)
+Task<bool> CanAppendPatientAsync(string userId, string patientId); // owner OR active grant with scope append
+```
+
+Endpoints should keep using `IPatientAccess`, because only it can distinguish FORBIDDEN from
+GRANT_EXPIRED. Role rules on top of access stay in the owning module: for example Clinical forbids an
+FCHV (not the owner) from recording a visit even with an append grant.
+
+**Grant tokens** are signed with `SigningKeys.Grant`, a different key from access tokens. They carry
+`typ:"grant"` and audience `mero-swasthya-grant`, and the row's `jti` must match. The stored row decides
+expiry, so a re-scan by the same provider is idempotent.
+
+**Audit writer.** `Audit.Contracts.IAuditWriter.WriteAsync(patientId, action)` appends an A.2 AuditEntry
+for the *current user*, with actor name and facility denormalised at write time. Callers write after
+their own `SaveChanges` succeeded, so a failed action never leaves an audit line behind. (The two
+writes are separate transactions: a crash between them can lose an audit line, never invent one.)
+`record_viewed` is driven by Patients' `IPatientReadObserver` hook, throttled to once per 10 minutes per
+(actor, patient). Entries are ordered by `at` desc, then an identity `seq` for same-millisecond ties.
+
+## 8. The summary / timeline contribution pattern
+
+Patients owns the *shapes* (`PatientSummaryDto`, `TimelineItemDto`, `TimelinePageDto`) and the
+*builders* (`IPatientSummaryService`, `IPatientTimelineService`). Modules that own clinical data
+contribute:
+
+```csharp
+// Clinical registers:
+services.AddScoped<IPatientSummaryContributor, ClinicalSummaryContributor>(); // Order = 10
+services.AddScoped<ITimelineContributor, ClinicalTimelineContributor>();
+```
+
+* **Summary**: the Patients base fills `allergies` and `activeProblems` from `chronicConditions`
+  (labelled via Catalog). Contributors then run in `Order` against a mutable `PatientSummaryBuilder`.
+  Clinical dates the problems (`since`), adds visit diagnoses, and sets `currentMedicines`, `lastVitals`,
+  `lastVisitAt` and `visitCount`. Maternal (Order 20) will set `activePregnancy`.
+* **Timeline**: each contributor returns its newest items strictly before the `before` cursor, at most
+  `limit` of them. The service asks each for `limit + 1`, merges newest-first, cuts the page and
+  returns `nextBefore` (null on the last page). Payload = the entity's own DTO, so no second call is
+  needed.
+* The same builders feed `GET /patients/:id`, `GET /patients/:id/timeline` and the grant redeem bundle.
+  Grants then filters the bundle by `sections` (kinds → sections map in `GrantService.BundleAsync`).
+
+A new kind is one contributor class plus one enum value in `TimelineKind`; the Patients module does
+not change.
+
+## 9. Documents storage
+
+`Clinical.Application.DocumentStorage` decides where bytes go:
+
+* `Storage:Mode=auto` uses MinIO (AWSSDK.S3, path-style, SigV4) when `S3:Endpoint` answers. Reachability
+  is probed and cached for 30 s, and the bucket is created if missing. Otherwise bytes go to local disk
+  under `Storage:LocalPath`. The row remembers which (`storage` = `s3` | `local`).
+* `Storage:UploadMode=proxy` (default) hands the phone a signed `PUT /api/v1/documents/:id/upload` URL,
+  and the API writes the bytes to MinIO or disk. `presigned` hands out a MinIO presigned PUT signed for
+  `S3:PublicEndpoint` instead.
+* Download URLs are MinIO presigned GETs for the public endpoint, or signed `GET …/documents/:id/file`
+  URLs for local bytes (1 h). Both work without a bearer token. Signed API URLs are
+  HMAC-SHA256(`purpose:id:exp`) with a key derived from the access signing key.

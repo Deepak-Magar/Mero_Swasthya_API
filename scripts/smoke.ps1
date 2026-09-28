@@ -2,7 +2,9 @@
 .SYNOPSIS
   curl walk over the running API, in the order the app uses it:
   health -> otp request -> otp verify -> pin (login, or set for a new account) -> me -> patients
-  -> patient summary -> timeline -> codelists -> rules -> config.
+  -> patient summary -> timeline -> codelists -> rules -> config -> nearby, then the session-2 walk:
+  patient shares Ram (grant) -> provider logs in -> redeem -> add visit -> presign / PUT / complete a
+  document -> timeline + summary -> patient reads the audit log.
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts\smoke.ps1
@@ -11,7 +13,8 @@
 param(
     [string]$BaseUrl = 'http://127.0.0.1:5000/api/v1',
     [string]$Phone = '+9779801000001',
-    [string]$Pin = '1234'
+    [string]$Pin = '1234',
+    [string]$ProviderPhone = '+9779801000002'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -34,6 +37,15 @@ function Invoke-Api {
     $status = [int]$lines[-1]
     $json = ($lines[0..($lines.Length - 2)] -join "`n")
     return [pscustomobject]@{ Status = $status; Body = ($json | ConvertFrom-Json); Raw = $json }
+}
+
+function Send-Bytes {
+    param([string]$Url, [byte[]]$Bytes, [string]$ContentType)
+    $file = Join-Path $tmp 'upload.bin'
+    [IO.File]::WriteAllBytes($file, $Bytes)
+    # Exactly what the app's upload worker does: PUT the bytes to uploadUrl with uploadHeaders.
+    $status = & curl.exe -s -S -o NUL -w '%{http_code}' -X PUT -H "Content-Type: $ContentType" --data-binary "@$file" $Url
+    return [int]$status
 }
 
 function Step {
@@ -105,6 +117,62 @@ Step 'GET  /config' $r { param($d) "smsMode=$($d.smsMode) otpDemo=$($d.otpDemo) 
 
 $r = Invoke-Api GET '/facilities/nearby?lat=28.03&lng=82.49&birthing=true&limit=3' $null $access
 Step 'GET  /facilities/nearby' $r { param($d) (($d.items | ForEach-Object { "$($_.id) $($_.distanceKm)km" }) -join ', ') }
+
+# ---- Session 2: grants, visits, documents, audit ------------------------------------------------
+$ramId = 'p_a1a1a1a1-0000-4000-8000-000000000002'
+
+$r = Invoke-Api POST '/grants' @{ patientId = $ramId; scope = 'append'; ttlMinutes = 10 } $access
+Step 'POST /grants (patient shares Ram)' $r { param($d) "grant=$($d.grant.id) scope=$($d.grant.scope) qr=$($d.qrPayload.Substring(0, 12))..." }
+$qr = $r.Body.data.qrPayload
+
+$r = Invoke-Api POST '/auth/pin/login' @{ phone = $ProviderPhone; pin = $Pin }
+Step 'POST /auth/pin/login (provider)' $r { param($d) "user=$($d.user.name) role=$($d.user.role) facility=$($d.user.facilityName)" }
+$provider = $r.Body.data.accessToken
+
+$r = Invoke-Api POST '/grants/redeem' @{ qrPayload = $qr } $provider
+Step 'POST /grants/redeem' $r {
+    param($d) "patient=$($d.patient.name) accessUntil=$($d.grant.accessUntil) timeline=$($d.timeline.Count) visits=$($d.summary.visitCount)"
+}
+
+$visitId = 'v_' + [guid]::NewGuid()
+$visit = @{
+    id = $visitId; visitAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'")
+    chiefComplaintCode = 'CC_FOLLOW_UP'; vitals = @{ bpSys = 134; bpDia = 84; weightKg = 71.0 }
+    diagnosisCodes = @('E11', 'I10'); notes = 'Smoke test visit'; advice = 'Continue medicines'
+    followUpAt = (Get-Date).AddDays(30).ToString('yyyy-MM-dd'); referral = $null
+    prescriptions = @(@{ id = 'rx_smoke_1'; drugCode = 'METFORMIN_500'; dose = '1 tab'; frequency = 'BD'; durationDays = 30 })
+    supersedesId = $null
+}
+$r = Invoke-Api POST "/patients/$ramId/visits" $visit $provider
+Step 'POST /patients/:id/visits' $r { param($d) "visit=$($d.visit.id) by=$($d.visit.providerName) drug=$($d.visit.prescriptions[0].drugName)" }
+
+$docId = 'd_' + [guid]::NewGuid()
+$jpeg = [byte[]](0xFF, 0xD8, 0xFF, 0xE0) + [byte[]](1..2000 | ForEach-Object { $_ % 256 }) + [byte[]](0xFF, 0xD9)
+$r = Invoke-Api POST '/documents/presign' @{
+    id = $docId; patientId = $ramId; type = 'lab'; title = 'Smoke test lab report'
+    takenAt = (Get-Date).ToString('yyyy-MM-dd'); contentType = 'image/jpeg'; sizeBytes = $jpeg.Length
+} $provider
+Step 'POST /documents/presign' $r { param($d) "status=$($d.document.status) uploadUrl=$(([Uri]$d.uploadUrl).GetLeftPart('Path'))" }
+
+$putStatus = Send-Bytes $r.Body.data.uploadUrl $jpeg 'image/jpeg'
+$ok = $putStatus -ge 200 -and $putStatus -lt 300
+if (-not $ok) { $script:failures++ }
+Write-Host ('[{0}] {1,-34} HTTP {2}  {3} bytes' -f ($(if ($ok) { 'PASS' } else { 'FAIL' })), 'PUT  uploadUrl', $putStatus, $jpeg.Length)
+
+$r = Invoke-Api POST "/documents/$docId/complete" $null $provider
+Step 'POST /documents/:id/complete' $r { param($d) "status=$($d.document.status) version=$($d.document.version) downloadUrl=$([bool]$d.document.downloadUrl)" }
+
+$r = Invoke-Api GET "/patients/$ramId/timeline?limit=5" $null $provider
+Step 'GET  /patients/:id/timeline' $r { param($d) (($d.items | ForEach-Object { "$($_.kind): $($_.title)" }) -join ' | ') }
+
+$r = Invoke-Api GET "/patients/$ramId" $null $provider
+Step 'GET  /patients/:id (summary)' $r {
+    param($d) $s = $d.summary
+    "visits=$($s.visitCount) meds=$(($s.currentMedicines | ForEach-Object { $_.drugCode }) -join ',') lastBP=$($s.lastVitals.bpSys)/$($s.lastVitals.bpDia)"
+}
+
+$r = Invoke-Api GET "/patients/$ramId/audit?limit=6" $null $access
+Step 'GET  /patients/:id/audit (owner)' $r { param($d) (($d.items | ForEach-Object { $_.action }) -join ', ') }
 
 Write-Host ('-' * 100)
 if ($script:failures -gt 0) {

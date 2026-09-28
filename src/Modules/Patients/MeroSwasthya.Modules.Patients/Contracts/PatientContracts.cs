@@ -172,3 +172,24 @@ public interface IPatientTimelineService
 {
     Task<TimelinePageDto> GetPageAsync(string patientId, DateTime? before, int limit, CancellationToken ct = default);
 }
+
+/// <summary>
+/// Notified after a caller who is not the owner (a health worker with a grant) reads a patient
+/// record via GET /patients/:id. The Audit module writes <c>record_viewed</c> from it.
+/// </summary>
+public interface IPatientReadObserver
+{
+    Task OnRecordViewedAsync(PatientDto patient, CurrentUserInfo reader, CancellationToken ct = default);
+}
+
+/// <summary>The active pregnancy and its ANC contacts, as their A.2 DTOs.</summary>
+public sealed record ActivePregnancySnapshot(object Pregnancy, IReadOnlyList<object> AncContacts);
+
+/// <summary>
+/// Implemented by the Maternal module; used by the grant redeem bundle (pregnancy, ancContacts).
+/// With no implementation registered the bundle carries <c>pregnancy: null, ancContacts: []</c>.
+/// </summary>
+public interface IActivePregnancySource
+{
+    Task<ActivePregnancySnapshot?> GetAsync(string patientId, CancellationToken ct = default);
+}

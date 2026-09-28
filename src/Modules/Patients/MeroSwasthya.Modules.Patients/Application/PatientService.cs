@@ -22,6 +22,7 @@ internal sealed class PatientService(
     IPatientSummaryService summaries,
     IPatientTimelineService timeline,
     IEnumerable<IPatientGrantSource> grantSources,
+    IEnumerable<IPatientReadObserver> readObservers,
     IClock clock)
 {
     /// <summary>Owned profiles for everyone; health workers additionally see patients they hold an active grant for.</summary>
@@ -83,9 +84,14 @@ internal sealed class PatientService(
 
     public async Task<PatientDetailResponse> GetAsync(string id, CancellationToken ct)
     {
-        var (patient, _) = await access.LoadWithAccessAsync(id, PatientAccessLevel.Read, ct);
-        // TODO(Grants): write AuditEntry record_viewed when a health worker (not the owner) reads the record.
+        var (patient, level) = await access.LoadWithAccessAsync(id, PatientAccessLevel.Read, ct);
         var dto = patient.ToDto();
+        if (level != PatientAccessLevel.Owner)
+        {
+            var reader = await currentUser.GetAsync(ct);
+            foreach (var observer in readObservers)
+                await observer.OnRecordViewedAsync(dto, reader, ct);
+        }
         return new PatientDetailResponse(dto, await summaries.BuildAsync(dto, ct));
     }
 

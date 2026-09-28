@@ -13,6 +13,9 @@ public enum ErrorCode
     RuleViolation,
     RateLimited,
     Internal,
+
+    /// <summary>Not in A.3; A.4 allows 501 for POST /documents/:id/summarize when AI is off.</summary>
+    NotImplemented,
 }
 
 public static class ErrorCodes
@@ -28,6 +31,7 @@ public static class ErrorCodes
         ErrorCode.AlreadyRedeemed => "ALREADY_REDEEMED",
         ErrorCode.RuleViolation => "RULE_VIOLATION",
         ErrorCode.RateLimited => "RATE_LIMITED",
+        ErrorCode.NotImplemented => "NOT_IMPLEMENTED",
         _ => "INTERNAL",
     };
 
@@ -42,6 +46,7 @@ public static class ErrorCodes
         ErrorCode.AlreadyRedeemed => 409,
         ErrorCode.RuleViolation => 422,
         ErrorCode.RateLimited => 429,
+        ErrorCode.NotImplemented => 501,
         _ => 500,
     };
 }

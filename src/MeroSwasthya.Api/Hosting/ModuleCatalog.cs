@@ -1,3 +1,4 @@
+using MeroSwasthya.Modules.Audit;
 using MeroSwasthya.Modules.Auth;
 using MeroSwasthya.Modules.Catalog;
 using MeroSwasthya.Modules.Clinical;
@@ -18,6 +19,7 @@ public static class ModuleCatalog
         new CatalogModule(),
         new AuthModule(),
         new PatientsModule(),
+        new AuditModule(),
         new GrantsModule(),
         new ClinicalModule(),
         new MaternalModule(),

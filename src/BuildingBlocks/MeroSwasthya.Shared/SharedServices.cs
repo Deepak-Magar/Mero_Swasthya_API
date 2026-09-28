@@ -22,6 +22,7 @@ public static class SharedServices
         services.AddProblemDetails();
         services.AddHttpContextAccessor();
         services.TryAddSingleton<IClock, SystemClock>();
+        services.AddScoped<Events.IDomainEventPublisher, Events.InProcessDomainEventPublisher>();
         ValidationExtensions.ConfigureGlobal();
 
         var jwt = config.GetSection(JwtSettings.Section).Get<JwtSettings>() ?? new JwtSettings();

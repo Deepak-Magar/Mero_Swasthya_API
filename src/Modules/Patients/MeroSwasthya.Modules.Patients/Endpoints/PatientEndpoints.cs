@@ -40,6 +40,6 @@ internal static class PatientEndpoints
             return ApiResults.Ok(await svc.TimelineAsync(id, cursor, pageSize, ct));
         });
 
-        // TODO(Grants): GET /patients/{id}/audit (owner only) — AuditEntry lives in the Grants module.
+        // GET /patients/{id}/audit is mapped by the Audit module; visits by Clinical.
     }
 }

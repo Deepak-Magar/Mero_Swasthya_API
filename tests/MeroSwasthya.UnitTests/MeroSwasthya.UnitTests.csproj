@@ -9,6 +9,7 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="FluentAssertions" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />
@@ -24,5 +25,6 @@
     <ProjectReference Include="..\..\src\Modules\Maternal\MeroSwasthya.Modules.Maternal\MeroSwasthya.Modules.Maternal.csproj" />
     <ProjectReference Include="..\..\src\Modules\Reminders\MeroSwasthya.Modules.Reminders\MeroSwasthya.Modules.Reminders.csproj" />
     <ProjectReference Include="..\..\src\Modules\Sync\MeroSwasthya.Modules.Sync\MeroSwasthya.Modules.Sync.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Audit\MeroSwasthya.Modules.Audit\MeroSwasthya.Modules.Audit.csproj" />
   </ItemGroup>
 </Project>

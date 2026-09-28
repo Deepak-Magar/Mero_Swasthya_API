@@ -44,6 +44,7 @@ public sealed class HelperTests
     [InlineData(ErrorCode.RuleViolation, 422, "RULE_VIOLATION")]
     [InlineData(ErrorCode.RateLimited, 429, "RATE_LIMITED")]
     [InlineData(ErrorCode.Internal, 500, "INTERNAL")]
+    [InlineData(ErrorCode.NotImplemented, 501, "NOT_IMPLEMENTED")]
     public void Error_codes_mirror_table_A3(ErrorCode code, int status, string wire)
     {
         code.HttpStatus().Should().Be(status);

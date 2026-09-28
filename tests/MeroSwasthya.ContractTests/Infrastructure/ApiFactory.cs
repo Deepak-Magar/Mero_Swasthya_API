@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Npgsql;
+using Testcontainers.Minio;
 using Testcontainers.PostgreSql;
 
 namespace MeroSwasthya.ContractTests.Infrastructure;
@@ -19,12 +20,29 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     public const string DefaultLocalServer = "Host=127.0.0.1;Port=5433;Username=swc;Password=swc;Database=postgres";
 
     private PostgreSqlContainer? _container;
+    private MinioContainer? _minio;
+    private readonly string _documentsDir = Path.Combine(Path.GetTempPath(), $"swc-docs-{Guid.NewGuid():N}");
     private string? _localAdminConnection;
     private string? _localDatabase;
     private string _connectionString = "";
 
     /// <summary>Human-readable description of where the tests ran; printed by <c>DatabaseModeTests</c>.</summary>
     public string DatabaseMode { get; private set; } = "";
+
+    /// <summary>Where document bytes went: Testcontainers MinIO, or the local-disk dev fallback.</summary>
+    public string StorageMode { get; private set; } = "";
+
+    public string ConnectionString => _connectionString;
+
+    /// <summary>Direct SQL for "time travel" cases (an expired QR, a 24 h window that ended) — never used to arrange data the API can create.</summary>
+    public async Task ExecuteSqlAsync(string sql, params (string Name, object Value)[] parameters)
+    {
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync();
+        await using var command = new NpgsqlCommand(sql, connection);
+        foreach (var (name, value) in parameters) command.Parameters.AddWithValue(name, value);
+        await command.ExecuteNonQueryAsync();
+    }
 
     public async Task InitializeAsync()
     {
@@ -39,6 +57,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             await _container.StartAsync();
             _connectionString = _container.GetConnectionString();
             DatabaseMode = "Testcontainers (postgres:16 in Docker)";
+
+            _minio = new MinioBuilder().WithImage("minio/minio").WithUsername("minio").WithPassword("minio123").Build();
+            await _minio.StartAsync();
+            StorageMode = $"Testcontainers MinIO at {_minio.GetConnectionString()}";
         }
         else
         {
@@ -54,6 +76,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             }
             _connectionString = new NpgsqlConnectionStringBuilder(_localAdminConnection) { Database = _localDatabase }
                 .ConnectionString;
+            StorageMode = $"Local-disk document fallback (Docker unavailable) in {_documentsDir}";
         }
 
         _ = Server; // build the host now: migrations + seed run once for the whole collection
@@ -71,12 +94,27 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Database:MigrateOnStartup", "true");
         builder.UseSetting("Database:SeedOnStartup", "true");
         builder.UseSetting("Serilog:MinimumLevel:Default", "Warning");
+        if (_minio is not null)
+        {
+            builder.UseSetting("Storage:Mode", "s3");
+            builder.UseSetting("S3:Endpoint", _minio.GetConnectionString());
+            builder.UseSetting("S3:AccessKey", "minio");
+            builder.UseSetting("S3:SecretKey", "minio123");
+        }
+        else
+        {
+            builder.UseSetting("Storage:Mode", "local");
+            builder.UseSetting("S3:Endpoint", "");
+        }
+        builder.UseSetting("Storage:LocalPath", _documentsDir);
     }
 
     public new async Task DisposeAsync()
     {
         await base.DisposeAsync();
         if (_container is not null) await _container.DisposeAsync();
+        if (_minio is not null) await _minio.DisposeAsync();
+        try { Directory.Delete(_documentsDir, recursive: true); } catch (DirectoryNotFoundException) { }
         if (_localAdminConnection is not null && _localDatabase is not null)
         {
             NpgsqlConnection.ClearAllPools();

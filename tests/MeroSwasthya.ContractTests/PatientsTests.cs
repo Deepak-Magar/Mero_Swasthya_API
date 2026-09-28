@@ -236,23 +236,33 @@ public sealed class PatientsTests(ApiFactory factory)
     }
 
     [Fact]
-    public async Task Detail_for_Ram_labels_active_problems_from_the_codelist()
+    public async Task Detail_for_Ram_builds_the_summary_from_the_seeded_visits()
     {
         var owner = await TestUsers.Login(_api, TestUsers.PatientPhone);
         var summary = (await _api.Get($"/patients/{RamId}", owner.AccessToken)).Data()["summary"]!;
 
-        JsonAssert.DeepEqual(summary, Json.Obj("""
+        // Seed: four visits 360 / 240 / 120 / 25 days ago at 04:05 UTC; the latest prescribes 30 days of
+        // Metformin + Amlodipine, the older 90-day courses have run out.
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var first = today.AddDays(-360).ToString("yyyy-MM-dd");
+        var latest = $"{today.AddDays(-25):yyyy-MM-dd}T04:05:00.000Z";
+        JsonAssert.DeepEqual(summary, Json.Obj($$"""
             {
               "activeProblems": [
-                { "code": "E11", "labelEn": "Type 2 diabetes", "labelNp": "मधुमेह", "since": null },
-                { "code": "I10", "labelEn": "Essential hypertension", "labelNp": "उच्च रक्तचाप", "since": null }
+                { "code": "E11", "labelEn": "Type 2 diabetes", "labelNp": "मधुमेह", "since": "{{first}}" },
+                { "code": "I10", "labelEn": "Essential hypertension", "labelNp": "उच्च रक्तचाप", "since": "{{first}}" }
               ],
-              "currentMedicines": [],
+              "currentMedicines": [
+                { "id": "rx_0001", "drugCode": "METFORMIN_500", "drugName": "Metformin 500 mg", "dose": "1 tab",
+                  "frequency": "BD", "durationDays": 30, "instructionsNp": "खाना पछि" },
+                { "id": "rx_0002", "drugCode": "AMLODIPINE_5", "drugName": "Amlodipine 5 mg", "dose": "1 tab",
+                  "frequency": "OD", "durationDays": 30, "instructionsNp": "बिहान" }
+              ],
               "allergies": ["penicillin"],
-              "lastVitals": null,
+              "lastVitals": { "bpSys": 138, "bpDia": 88, "weightKg": 71.5, "at": "{{latest}}" },
               "activePregnancy": null,
-              "lastVisitAt": null,
-              "visitCount": 0
+              "lastVisitAt": "{{latest}}",
+              "visitCount": 4
             }
             """));
     }

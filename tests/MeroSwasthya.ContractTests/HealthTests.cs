@@ -13,6 +13,7 @@ public sealed class HealthTests(ApiFactory factory, ITestOutputHelper output)
     public void Reports_which_database_the_contract_tests_use()
     {
         output.WriteLine($"Contract tests database: {factory.DatabaseMode}");
+        output.WriteLine($"Contract tests document storage: {factory.StorageMode}");
         factory.DatabaseMode.Should().NotBeNullOrEmpty();
     }
 
@@ -26,7 +27,7 @@ public sealed class HealthTests(ApiFactory factory, ITestOutputHelper output)
         data["database"]!.GetValue<string>().Should().Be("up");
         JsonAssert.IsIsoTimestamp(data["serverTime"]);
         data["modules"]!.AsArray().Select(m => m!.GetValue<string>()).Should()
-            .BeEquivalentTo(["catalog", "auth", "patients", "grants", "clinical", "maternal", "reminders", "sync"]);
+            .BeEquivalentTo(["catalog", "auth", "patients", "audit", "grants", "clinical", "maternal", "reminders", "sync"]);
     }
 
     [Fact]

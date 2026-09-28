@@ -26,9 +26,11 @@ builder.Services.AddApiDocumentation();
 
 var app = builder.Build();
 
+// Request logging outermost, so it records the status the client actually received (after the
+// exception handler turned an AppException into its 4xx envelope).
+app.UseSerilogRequestLogging();
 app.UseExceptionHandler();
 app.UseEnvelopeStatusCodes();
-app.UseSerilogRequestLogging();
 app.UseAuthentication();
 app.UseAuthorization();
 

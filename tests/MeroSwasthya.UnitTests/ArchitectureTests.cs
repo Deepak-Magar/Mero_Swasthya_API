@@ -1,4 +1,5 @@
 using System.Reflection;
+using MeroSwasthya.Modules.Audit;
 using MeroSwasthya.Modules.Auth;
 using MeroSwasthya.Modules.Catalog;
 using MeroSwasthya.Modules.Clinical;
@@ -19,7 +20,7 @@ public sealed class ArchitectureTests
     [
         typeof(AuthModule).Assembly, typeof(CatalogModule).Assembly, typeof(PatientsModule).Assembly,
         typeof(GrantsModule).Assembly, typeof(ClinicalModule).Assembly, typeof(MaternalModule).Assembly,
-        typeof(RemindersModule).Assembly, typeof(SyncModule).Assembly,
+        typeof(RemindersModule).Assembly, typeof(SyncModule).Assembly, typeof(AuditModule).Assembly,
     ];
 
     [Fact]
@@ -66,7 +67,7 @@ public sealed class ArchitectureTests
         var references = typeof(PatientsModule).Assembly.GetReferencedAssemblies().Select(a => a.Name).ToList();
         references.Should().NotContain(["MeroSwasthya.Modules.Grants", "MeroSwasthya.Modules.Clinical",
             "MeroSwasthya.Modules.Maternal", "MeroSwasthya.Modules.Reminders", "MeroSwasthya.Modules.Sync",
-            "MeroSwasthya.Modules.Auth"]);
+            "MeroSwasthya.Modules.Auth", "MeroSwasthya.Modules.Audit"]);
     }
 
     [Fact]

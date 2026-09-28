@@ -16,6 +16,7 @@
     <ProjectReference Include="..\Modules\Auth\MeroSwasthya.Modules.Auth\MeroSwasthya.Modules.Auth.csproj" />
     <ProjectReference Include="..\Modules\Catalog\MeroSwasthya.Modules.Catalog\MeroSwasthya.Modules.Catalog.csproj" />
     <ProjectReference Include="..\Modules\Patients\MeroSwasthya.Modules.Patients\MeroSwasthya.Modules.Patients.csproj" />
+    <ProjectReference Include="..\Modules\Audit\MeroSwasthya.Modules.Audit\MeroSwasthya.Modules.Audit.csproj" />
     <ProjectReference Include="..\Modules\Grants\MeroSwasthya.Modules.Grants\MeroSwasthya.Modules.Grants.csproj" />
     <ProjectReference Include="..\Modules\Clinical\MeroSwasthya.Modules.Clinical\MeroSwasthya.Modules.Clinical.csproj" />
     <ProjectReference Include="..\Modules\Maternal\MeroSwasthya.Modules.Maternal\MeroSwasthya.Modules.Maternal.csproj" />

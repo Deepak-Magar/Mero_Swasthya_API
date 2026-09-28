@@ -29,6 +29,7 @@ public sealed class AuthModule : IModule
         services.AddScoped<AuthService>();
         services.AddScoped<ICurrentUser, CurrentUserAccessor>();
         services.AddScoped<IUserDirectory, UserDirectory>();
+        services.AddScoped<IPinVerifier, PinVerifier>();
         services.AddScoped<IModuleInitializer, AuthModuleInitializer>();
         services.AddValidatorsFromAssemblyContaining<AuthModule>(includeInternalTypes: true);
     }
