@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\MeroSwasthya.Shared\MeroSwasthya.Shared.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Byte-for-byte copies of the app's assets (mero_swasthya/assets). GET /rules serves rules.json verbatim. -->
+    <EmbeddedResource Include="Resources\*.json" LogicalName="MeroSwasthya.Catalog.%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="MeroSwasthya.UnitTests" />
+    <InternalsVisibleTo Include="MeroSwasthya.ContractTests" />
+    <InternalsVisibleTo Include="MeroSwasthya.Api" />
+  </ItemGroup>
+</Project>

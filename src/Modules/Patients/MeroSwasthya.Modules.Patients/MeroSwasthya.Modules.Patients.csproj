@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\MeroSwasthya.Shared\MeroSwasthya.Shared.csproj" />
+    <ProjectReference Include="..\..\Catalog\MeroSwasthya.Modules.Catalog\MeroSwasthya.Modules.Catalog.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="MeroSwasthya.UnitTests" />
+    <InternalsVisibleTo Include="MeroSwasthya.ContractTests" />
+    <InternalsVisibleTo Include="MeroSwasthya.Api" />
+  </ItemGroup>
+</Project>

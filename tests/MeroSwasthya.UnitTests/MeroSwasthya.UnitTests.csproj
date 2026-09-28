@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="FluentAssertions" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="FluentAssertions" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BuildingBlocks\MeroSwasthya.Shared\MeroSwasthya.Shared.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Auth\MeroSwasthya.Modules.Auth\MeroSwasthya.Modules.Auth.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Catalog\MeroSwasthya.Modules.Catalog\MeroSwasthya.Modules.Catalog.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Patients\MeroSwasthya.Modules.Patients\MeroSwasthya.Modules.Patients.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Grants\MeroSwasthya.Modules.Grants\MeroSwasthya.Modules.Grants.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Clinical\MeroSwasthya.Modules.Clinical\MeroSwasthya.Modules.Clinical.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Maternal\MeroSwasthya.Modules.Maternal\MeroSwasthya.Modules.Maternal.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Reminders\MeroSwasthya.Modules.Reminders\MeroSwasthya.Modules.Reminders.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Sync\MeroSwasthya.Modules.Sync\MeroSwasthya.Modules.Sync.csproj" />
+  </ItemGroup>
+</Project>

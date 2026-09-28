@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <UserSecretsId>mero-swasthya-api</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BuildingBlocks\MeroSwasthya.Shared\MeroSwasthya.Shared.csproj" />
+    <ProjectReference Include="..\Modules\Auth\MeroSwasthya.Modules.Auth\MeroSwasthya.Modules.Auth.csproj" />
+    <ProjectReference Include="..\Modules\Catalog\MeroSwasthya.Modules.Catalog\MeroSwasthya.Modules.Catalog.csproj" />
+    <ProjectReference Include="..\Modules\Patients\MeroSwasthya.Modules.Patients\MeroSwasthya.Modules.Patients.csproj" />
+    <ProjectReference Include="..\Modules\Grants\MeroSwasthya.Modules.Grants\MeroSwasthya.Modules.Grants.csproj" />
+    <ProjectReference Include="..\Modules\Clinical\MeroSwasthya.Modules.Clinical\MeroSwasthya.Modules.Clinical.csproj" />
+    <ProjectReference Include="..\Modules\Maternal\MeroSwasthya.Modules.Maternal\MeroSwasthya.Modules.Maternal.csproj" />
+    <ProjectReference Include="..\Modules\Reminders\MeroSwasthya.Modules.Reminders\MeroSwasthya.Modules.Reminders.csproj" />
+    <ProjectReference Include="..\Modules\Sync\MeroSwasthya.Modules.Sync\MeroSwasthya.Modules.Sync.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="MeroSwasthya.ContractTests" />
+  </ItemGroup>
+</Project>

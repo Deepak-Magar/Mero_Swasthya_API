@@ -1,0 +1,48 @@
+{
+  "items": [
+    {
+      "id": "f_0001",
+      "name": "Ghorahi Health Post",
+      "type": "health_post",
+      "hasBirthingCentre": true,
+      "phone": "+97782561001",
+      "lat": 28.0334,
+      "lng": 82.4874,
+      "municipality": "Ghorahi",
+      "distanceKm": null
+    },
+    {
+      "id": "f_0002",
+      "name": "Rapti Provincial Hospital",
+      "type": "hospital",
+      "hasBirthingCentre": true,
+      "phone": "+97782560000",
+      "lat": 28.0345,
+      "lng": 82.4871,
+      "municipality": "Tulsipur",
+      "distanceKm": null
+    },
+    {
+      "id": "f_0003",
+      "name": "Tulsipur PHCC",
+      "type": "phcc",
+      "hasBirthingCentre": true,
+      "phone": "+97782520045",
+      "lat": 28.13,
+      "lng": 82.297,
+      "municipality": "Tulsipur",
+      "distanceKm": null
+    },
+    {
+      "id": "f_0004",
+      "name": "Lamahi Birthing Centre",
+      "type": "birthing_centre",
+      "hasBirthingCentre": true,
+      "phone": "+97782540022",
+      "lat": 27.869,
+      "lng": 82.543,
+      "municipality": "Lamahi",
+      "distanceKm": null
+    }
+  ]
+}

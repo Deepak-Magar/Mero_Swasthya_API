@@ -1,0 +1,1009 @@
+{
+  "version": "2026-09-18.1",
+  "items": [
+    {
+      "kind": "complaint",
+      "code": "CC_FEVER",
+      "labelEn": "Fever",
+      "labelNp": "ज्वरो",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_COUGH",
+      "labelEn": "Cough",
+      "labelNp": "खोकी",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_COLD",
+      "labelEn": "Common cold",
+      "labelNp": "रुघा",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_HEADACHE",
+      "labelEn": "Headache",
+      "labelNp": "टाउको दुख्ने",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_ABDOMINAL_PAIN",
+      "labelEn": "Abdominal pain",
+      "labelNp": "पेट दुख्ने",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_DIARRHOEA",
+      "labelEn": "Diarrhoea",
+      "labelNp": "पखाला",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_VOMITING",
+      "labelEn": "Vomiting",
+      "labelNp": "बान्ता",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_BODY_ACHE",
+      "labelEn": "Body ache",
+      "labelNp": "जीउ दुख्ने",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_WEAKNESS",
+      "labelEn": "Weakness / tiredness",
+      "labelNp": "कमजोरी",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_BREATHLESSNESS",
+      "labelEn": "Breathlessness",
+      "labelNp": "सास फेर्न गाह्रो",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_CHEST_PAIN",
+      "labelEn": "Chest pain",
+      "labelNp": "छाती दुख्ने",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_POLYURIA",
+      "labelEn": "Frequent urination",
+      "labelNp": "बारम्बार पिसाब",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_BURNING_URINE",
+      "labelEn": "Burning urination",
+      "labelNp": "पिसाब पोल्ने",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_JOINT_PAIN",
+      "labelEn": "Joint pain",
+      "labelNp": "जोर्नी दुख्ने",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_BACK_PAIN",
+      "labelEn": "Back pain",
+      "labelNp": "ढाड दुख्ने",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_SKIN_RASH",
+      "labelEn": "Skin rash",
+      "labelNp": "छालामा बिबिरा",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_ITCHING",
+      "labelEn": "Itching",
+      "labelNp": "चिलाउने",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_WOUND",
+      "labelEn": "Wound / injury",
+      "labelNp": "घाउ / चोट",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_EAR_PAIN",
+      "labelEn": "Ear pain",
+      "labelNp": "कान दुख्ने",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_EYE_PROBLEM",
+      "labelEn": "Eye problem",
+      "labelNp": "आँखाको समस्या",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_TOOTHACHE",
+      "labelEn": "Toothache",
+      "labelNp": "दाँत दुख्ने",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_SORE_THROAT",
+      "labelEn": "Sore throat",
+      "labelNp": "घाँटी दुख्ने",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_DIZZINESS",
+      "labelEn": "Dizziness",
+      "labelNp": "रिंगटा",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_SWELLING",
+      "labelEn": "Swelling",
+      "labelNp": "सुन्निने",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_CONSTIPATION",
+      "labelEn": "Constipation",
+      "labelNp": "कब्जियत",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_LOSS_APPETITE",
+      "labelEn": "Loss of appetite",
+      "labelNp": "भोक नलाग्ने",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_WEIGHT_LOSS",
+      "labelEn": "Weight loss",
+      "labelNp": "तौल घट्ने",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_ANC_CHECK",
+      "labelEn": "Antenatal check",
+      "labelNp": "गर्भ जाँच",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_PNC_CHECK",
+      "labelEn": "Postnatal check",
+      "labelNp": "सुत्केरी जाँच",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_FOLLOW_UP",
+      "labelEn": "Follow-up visit",
+      "labelNp": "पुनः जाँच",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_HIGH_BP",
+      "labelEn": "High blood pressure",
+      "labelNp": "उच्च रक्तचाप",
+      "meta": null
+    },
+    {
+      "kind": "complaint",
+      "code": "CC_BLEEDING",
+      "labelEn": "Bleeding",
+      "labelNp": "रगत बग्ने",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "E11",
+      "labelEn": "Type 2 diabetes",
+      "labelNp": "मधुमेह",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "I10",
+      "labelEn": "Essential hypertension",
+      "labelNp": "उच्च रक्तचाप",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "J00",
+      "labelEn": "Acute nasopharyngitis (common cold)",
+      "labelNp": "रुघाखोकी",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "J06",
+      "labelEn": "Upper respiratory infection",
+      "labelNp": "श्वासप्रश्वास संक्रमण",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "J18",
+      "labelEn": "Pneumonia",
+      "labelNp": "निमोनिया",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "J45",
+      "labelEn": "Asthma",
+      "labelNp": "दम",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "A09",
+      "labelEn": "Gastroenteritis",
+      "labelNp": "आन्द्राको संक्रमण",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "A90",
+      "labelEn": "Dengue fever",
+      "labelNp": "डेंगु",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "B50",
+      "labelEn": "Malaria",
+      "labelNp": "औलो",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "A01",
+      "labelEn": "Typhoid fever",
+      "labelNp": "टाइफाइड",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "D50",
+      "labelEn": "Iron deficiency anaemia",
+      "labelNp": "रक्तअल्पता",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "E66",
+      "labelEn": "Obesity",
+      "labelNp": "मोटोपन",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "K21",
+      "labelEn": "Gastro-oesophageal reflux",
+      "labelNp": "ग्यास्ट्रिक",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "K29",
+      "labelEn": "Gastritis",
+      "labelNp": "पेटको जलन",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "N39",
+      "labelEn": "Urinary tract infection",
+      "labelNp": "पिसाब नलीको संक्रमण",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "L23",
+      "labelEn": "Allergic contact dermatitis",
+      "labelNp": "छालाको एलर्जी",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "L30",
+      "labelEn": "Dermatitis",
+      "labelNp": "छाला रोग",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "B35",
+      "labelEn": "Fungal skin infection",
+      "labelNp": "ढुसीको संक्रमण",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "H10",
+      "labelEn": "Conjunctivitis",
+      "labelNp": "आँखा पाक्ने",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "H66",
+      "labelEn": "Otitis media",
+      "labelNp": "कानको संक्रमण",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "M54",
+      "labelEn": "Back pain",
+      "labelNp": "ढाड दुखाइ",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "M25",
+      "labelEn": "Joint pain",
+      "labelNp": "जोर्नी दुखाइ",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "M79",
+      "labelEn": "Soft tissue pain",
+      "labelNp": "मांसपेशी दुखाइ",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "R50",
+      "labelEn": "Fever, unspecified",
+      "labelNp": "ज्वरो",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "R51",
+      "labelEn": "Headache",
+      "labelNp": "टाउको दुखाइ",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "R10",
+      "labelEn": "Abdominal pain",
+      "labelNp": "पेट दुखाइ",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "O24",
+      "labelEn": "Gestational diabetes",
+      "labelNp": "गर्भकालीन मधुमेह",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "O14",
+      "labelEn": "Pre-eclampsia",
+      "labelNp": "प्रि-एक्लाम्पसिया",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "O16",
+      "labelEn": "Hypertension in pregnancy",
+      "labelNp": "गर्भावस्थाको उच्च रक्तचाप",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "O99",
+      "labelEn": "Anaemia in pregnancy",
+      "labelNp": "गर्भावस्थाको रक्तअल्पता",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "Z34",
+      "labelEn": "Normal pregnancy supervision",
+      "labelNp": "सामान्य गर्भ जाँच",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "Z39",
+      "labelEn": "Postpartum care",
+      "labelNp": "सुत्केरी हेरचाह",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "E05",
+      "labelEn": "Hyperthyroidism",
+      "labelNp": "थाइराइड बढी",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "E03",
+      "labelEn": "Hypothyroidism",
+      "labelNp": "थाइराइड कम",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "A15",
+      "labelEn": "Pulmonary tuberculosis",
+      "labelNp": "क्षयरोग",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "B01",
+      "labelEn": "Chickenpox",
+      "labelNp": "ठेउला",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "T14",
+      "labelEn": "Injury, unspecified",
+      "labelNp": "चोटपटक",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "F41",
+      "labelEn": "Anxiety disorder",
+      "labelNp": "चिन्ता",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "F32",
+      "labelEn": "Depression",
+      "labelNp": "डिप्रेसन",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "G43",
+      "labelEn": "Migraine",
+      "labelNp": "माइग्रेन",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "K59",
+      "labelEn": "Constipation",
+      "labelNp": "कब्जियत",
+      "meta": null
+    },
+    {
+      "kind": "diagnosis",
+      "code": "B82",
+      "labelEn": "Intestinal worms",
+      "labelNp": "आन्द्राको जुका",
+      "meta": null
+    },
+    {
+      "kind": "drug",
+      "code": "PARACETAMOL_500",
+      "labelEn": "Paracetamol 500 mg",
+      "labelNp": "प्यारासिटामोल ५०० मि.ग्रा.",
+      "meta": {
+        "strength": "500 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "PARACETAMOL_SYRUP",
+      "labelEn": "Paracetamol syrup 125 mg/5 ml",
+      "labelNp": "प्यारासिटामोल सिरप",
+      "meta": {
+        "strength": "125 mg/5 ml",
+        "form": "syrup"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "AMOXICILLIN_500",
+      "labelEn": "Amoxicillin 500 mg",
+      "labelNp": "एमोक्सिसिलिन ५०० मि.ग्रा.",
+      "meta": {
+        "strength": "500 mg",
+        "form": "capsule"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "AZITHROMYCIN_500",
+      "labelEn": "Azithromycin 500 mg",
+      "labelNp": "एजिथ्रोमाइसिन ५०० मि.ग्रा.",
+      "meta": {
+        "strength": "500 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "CIPROFLOXACIN_500",
+      "labelEn": "Ciprofloxacin 500 mg",
+      "labelNp": "सिप्रोफ्लोक्सासिन ५०० मि.ग्रा.",
+      "meta": {
+        "strength": "500 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "METRONIDAZOLE_400",
+      "labelEn": "Metronidazole 400 mg",
+      "labelNp": "मेट्रोनिडाजोल ४०० मि.ग्रा.",
+      "meta": {
+        "strength": "400 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "COTRIMOXAZOLE_480",
+      "labelEn": "Cotrimoxazole 480 mg",
+      "labelNp": "कोट्रिमोक्साजोल ४८० मि.ग्रा.",
+      "meta": {
+        "strength": "480 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "METFORMIN_500",
+      "labelEn": "Metformin 500 mg",
+      "labelNp": "मेटफर्मिन ५०० मि.ग्रा.",
+      "meta": {
+        "strength": "500 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "GLIMEPIRIDE_1",
+      "labelEn": "Glimepiride 1 mg",
+      "labelNp": "ग्लिमेपिराइड १ मि.ग्रा.",
+      "meta": {
+        "strength": "1 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "AMLODIPINE_5",
+      "labelEn": "Amlodipine 5 mg",
+      "labelNp": "एम्लोडिपिन ५ मि.ग्रा.",
+      "meta": {
+        "strength": "5 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "ENALAPRIL_5",
+      "labelEn": "Enalapril 5 mg",
+      "labelNp": "इनालाप्रिल ५ मि.ग्रा.",
+      "meta": {
+        "strength": "5 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "ATENOLOL_50",
+      "labelEn": "Atenolol 50 mg",
+      "labelNp": "एटेनोलोल ५० मि.ग्रा.",
+      "meta": {
+        "strength": "50 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "METHYLDOPA_250",
+      "labelEn": "Methyldopa 250 mg",
+      "labelNp": "मिथाइलडोपा २५० मि.ग्रा.",
+      "meta": {
+        "strength": "250 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "IRON_FOLIC",
+      "labelEn": "Iron + folic acid",
+      "labelNp": "आइरन र फोलिक एसिड",
+      "meta": {
+        "strength": "60 mg + 400 mcg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "CALCIUM_500",
+      "labelEn": "Calcium 500 mg",
+      "labelNp": "क्याल्सियम ५०० मि.ग्रा.",
+      "meta": {
+        "strength": "500 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "ALBENDAZOLE_400",
+      "labelEn": "Albendazole 400 mg",
+      "labelNp": "अल्बेन्डाजोल ४०० मि.ग्रा.",
+      "meta": {
+        "strength": "400 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "VITAMIN_A",
+      "labelEn": "Vitamin A capsule",
+      "labelNp": "भिटामिन ए",
+      "meta": {
+        "strength": "200000 IU",
+        "form": "capsule"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "ORS_SACHET",
+      "labelEn": "ORS sachet",
+      "labelNp": "जीवनजल",
+      "meta": {
+        "strength": "20.5 g",
+        "form": "sachet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "ZINC_20",
+      "labelEn": "Zinc 20 mg",
+      "labelNp": "जिंक २० मि.ग्रा.",
+      "meta": {
+        "strength": "20 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "OMEPRAZOLE_20",
+      "labelEn": "Omeprazole 20 mg",
+      "labelNp": "ओमेप्राजोल २० मि.ग्रा.",
+      "meta": {
+        "strength": "20 mg",
+        "form": "capsule"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "RANITIDINE_150",
+      "labelEn": "Ranitidine 150 mg",
+      "labelNp": "र्यानिटिडिन १५० मि.ग्रा.",
+      "meta": {
+        "strength": "150 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "ANTACID_SYRUP",
+      "labelEn": "Antacid syrup",
+      "labelNp": "एन्टासिड सिरप",
+      "meta": {
+        "strength": "170 ml",
+        "form": "syrup"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "DOMPERIDONE_10",
+      "labelEn": "Domperidone 10 mg",
+      "labelNp": "डोम्पेरिडोन १० मि.ग्रा.",
+      "meta": {
+        "strength": "10 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "IBUPROFEN_400",
+      "labelEn": "Ibuprofen 400 mg",
+      "labelNp": "आइबुप्रोफेन ४०० मि.ग्रा.",
+      "meta": {
+        "strength": "400 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "DICLOFENAC_50",
+      "labelEn": "Diclofenac 50 mg",
+      "labelNp": "डाइक्लोफेनाक ५० मि.ग्रा.",
+      "meta": {
+        "strength": "50 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "CETIRIZINE_10",
+      "labelEn": "Cetirizine 10 mg",
+      "labelNp": "सेटिरिजिन १० मि.ग्रा.",
+      "meta": {
+        "strength": "10 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "CHLORPHENIRAMINE_4",
+      "labelEn": "Chlorpheniramine 4 mg",
+      "labelNp": "क्लोरफेनिरामिन ४ मि.ग्रा.",
+      "meta": {
+        "strength": "4 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "SALBUTAMOL_INHALER",
+      "labelEn": "Salbutamol inhaler",
+      "labelNp": "साल्बुटामोल इन्हेलर",
+      "meta": {
+        "strength": "100 mcg/dose",
+        "form": "inhaler"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "PREDNISOLONE_5",
+      "labelEn": "Prednisolone 5 mg",
+      "labelNp": "प्रेडनिसोलोन ५ मि.ग्रा.",
+      "meta": {
+        "strength": "5 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "MULTIVITAMIN",
+      "labelEn": "Multivitamin",
+      "labelNp": "मल्टिभिटामिन",
+      "meta": {
+        "strength": "-",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "FOLIC_ACID_5",
+      "labelEn": "Folic acid 5 mg",
+      "labelNp": "फोलिक एसिड ५ मि.ग्रा.",
+      "meta": {
+        "strength": "5 mg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "MISOPROSTOL_200",
+      "labelEn": "Misoprostol 200 mcg",
+      "labelNp": "मिसोप्रोस्टोल २०० एमसीजी",
+      "meta": {
+        "strength": "200 mcg",
+        "form": "tablet"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "TETANUS_TD",
+      "labelEn": "Td vaccine",
+      "labelNp": "टिडी खोप",
+      "meta": {
+        "strength": "0.5 ml",
+        "form": "injection"
+      }
+    },
+    {
+      "kind": "drug",
+      "code": "ORS_ZINC_KIT",
+      "labelEn": "ORS + Zinc kit",
+      "labelNp": "जीवनजल र जिंक",
+      "meta": {
+        "strength": "-",
+        "form": "kit"
+      }
+    },
+    {
+      "kind": "dangerSign",
+      "code": "VAGINAL_BLEEDING",
+      "labelEn": "Vaginal bleeding",
+      "labelNp": "योनिबाट रगत बग्नु",
+      "meta": {
+        "level": "red"
+      }
+    },
+    {
+      "kind": "dangerSign",
+      "code": "CONVULSIONS",
+      "labelEn": "Convulsions / fits",
+      "labelNp": "काम्ने / मुर्छा पर्ने",
+      "meta": {
+        "level": "red"
+      }
+    },
+    {
+      "kind": "dangerSign",
+      "code": "SEVERE_HEADACHE_BLURRED_VISION",
+      "labelEn": "Severe headache with blurred vision",
+      "labelNp": "कडा टाउको दुखाइ र आँखा धमिलो",
+      "meta": {
+        "level": "red"
+      }
+    },
+    {
+      "kind": "dangerSign",
+      "code": "FEVER_WEAKNESS",
+      "labelEn": "High fever with weakness",
+      "labelNp": "उच्च ज्वरो र कमजोरी",
+      "meta": {
+        "level": "red"
+      }
+    },
+    {
+      "kind": "dangerSign",
+      "code": "SEVERE_ABDOMINAL_PAIN",
+      "labelEn": "Severe abdominal pain",
+      "labelNp": "पेट कडा दुख्ने",
+      "meta": {
+        "level": "red"
+      }
+    },
+    {
+      "kind": "dangerSign",
+      "code": "DIFFICULTY_BREATHING",
+      "labelEn": "Fast or difficult breathing",
+      "labelNp": "सास फेर्न गाह्रो",
+      "meta": {
+        "level": "red"
+      }
+    },
+    {
+      "kind": "dangerSign",
+      "code": "WATER_BREAK_PRETERM",
+      "labelEn": "Water breaking before 37 weeks",
+      "labelNp": "३७ हप्ता अघि पानी फुट्नु",
+      "meta": {
+        "level": "red"
+      }
+    },
+    {
+      "kind": "dangerSign",
+      "code": "REDUCED_FETAL_MOVEMENT",
+      "labelEn": "Reduced or absent fetal movement (after 20 wk)",
+      "labelNp": "बच्चा नचल्ने / कम चल्ने",
+      "meta": {
+        "level": "red"
+      }
+    },
+    {
+      "kind": "dangerSign",
+      "code": "SWELLING_FACE_HANDS",
+      "labelEn": "Swelling of face and hands",
+      "labelNp": "अनुहार र हात सुन्निनु",
+      "meta": {
+        "level": "amber"
+      }
+    },
+    {
+      "kind": "dangerSign",
+      "code": "PERSISTENT_VOMITING",
+      "labelEn": "Persistent vomiting",
+      "labelNp": "लगातार बान्ता",
+      "meta": {
+        "level": "amber"
+      }
+    },
+    {
+      "kind": "riskFactor",
+      "code": "AGE_LT_18",
+      "labelEn": "Age under 18",
+      "labelNp": "१८ वर्ष मुनि",
+      "meta": null
+    },
+    {
+      "kind": "riskFactor",
+      "code": "AGE_GT_35",
+      "labelEn": "Age over 35",
+      "labelNp": "३५ वर्ष माथि",
+      "meta": null
+    },
+    {
+      "kind": "riskFactor",
+      "code": "PREV_CS",
+      "labelEn": "Previous caesarean section",
+      "labelNp": "पहिले शल्यक्रिया",
+      "meta": null
+    },
+    {
+      "kind": "riskFactor",
+      "code": "PREV_STILLBIRTH",
+      "labelEn": "Previous stillbirth / neonatal death",
+      "labelNp": "पहिले मृत जन्म",
+      "meta": null
+    },
+    {
+      "kind": "riskFactor",
+      "code": "GRAND_MULTIPARA",
+      "labelEn": "Para ≥ 5",
+      "labelNp": "५ वा बढी सन्तान",
+      "meta": null
+    },
+    {
+      "kind": "riskFactor",
+      "code": "MULTIPLE_PREGNANCY",
+      "labelEn": "Twins / multiple",
+      "labelNp": "जुम्ल्याहा",
+      "meta": null
+    },
+    {
+      "kind": "riskFactor",
+      "code": "HEIGHT_LT_145",
+      "labelEn": "Height under 145 cm",
+      "labelNp": "उचाइ १४५ से.मि. मुनि",
+      "meta": null
+    },
+    {
+      "kind": "riskFactor",
+      "code": "CHRONIC_ILLNESS",
+      "labelEn": "Chronic illness (diabetes, hypertension, heart, HIV)",
+      "labelNp": "दीर्घ रोग",
+      "meta": null
+    }
+  ]
+}
