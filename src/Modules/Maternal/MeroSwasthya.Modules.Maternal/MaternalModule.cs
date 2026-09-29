@@ -1,4 +1,6 @@
 using FluentValidation;
+using MeroSwasthya.Modules.Maternal.Application;
+using MeroSwasthya.Modules.Maternal.Contracts;
 using MeroSwasthya.Modules.Maternal.Infrastructure;
 using MeroSwasthya.Shared.Modules;
 using MeroSwasthya.Shared.Persistence;
@@ -19,6 +21,7 @@ public sealed class MaternalModule : IModule
     public void AddModule(IServiceCollection services, IConfiguration config)
     {
         services.AddModuleDbContext<MaternalDbContext>(config, MaternalDbContext.Schema);
+        services.AddSingleton<IRulesService, RulesService>();
         services.AddScoped<IModuleInitializer, MaternalModuleInitializer>();
         services.AddValidatorsFromAssemblyContaining<MaternalModule>(includeInternalTypes: true);
     }
