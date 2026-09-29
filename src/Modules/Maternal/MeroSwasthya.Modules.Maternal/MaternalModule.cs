@@ -1,6 +1,7 @@
 using FluentValidation;
 using MeroSwasthya.Modules.Maternal.Application;
 using MeroSwasthya.Modules.Maternal.Contracts;
+using MeroSwasthya.Modules.Maternal.Endpoints;
 using MeroSwasthya.Modules.Maternal.Infrastructure;
 using MeroSwasthya.Shared.Modules;
 using MeroSwasthya.Shared.Persistence;
@@ -22,12 +23,10 @@ public sealed class MaternalModule : IModule
     {
         services.AddModuleDbContext<MaternalDbContext>(config, MaternalDbContext.Schema);
         services.AddSingleton<IRulesService, RulesService>();
+        services.AddScoped<PregnancyService>();
         services.AddScoped<IModuleInitializer, MaternalModuleInitializer>();
         services.AddValidatorsFromAssemblyContaining<MaternalModule>(includeInternalTypes: true);
     }
 
-    public void MapEndpoints(IEndpointRouteBuilder api)
-    {
-        // Endpoints are added feature by feature (pregnancies, contacts, delivery).
-    }
+    public void MapEndpoints(IEndpointRouteBuilder api) => MaternalEndpoints.Map(api);
 }

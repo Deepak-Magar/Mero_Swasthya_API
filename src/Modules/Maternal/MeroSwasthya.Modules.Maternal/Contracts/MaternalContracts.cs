@@ -48,3 +48,59 @@ public sealed record TriageInput(
     IReadOnlyList<string> DangerSigns,
     RiskLevel RiskLevel,
     int GestationalAgeDays);
+
+/// <summary>A.2 Pregnancy.birthPlan — every key optional; unset keys are omitted.</summary>
+public sealed record BirthPlanDto
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? FacilityId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? FacilityName { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? Transport { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public bool? MoneySaved { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? BloodDonorName { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? BloodDonorPhone { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? CompanionName { get; init; }
+}
+
+/// <summary>A.2 AncContact.referral — <c>{ facilityId?, facilityName, reason, urgency }</c>, the Visit.referral shape.</summary>
+public sealed record ReferralDto(
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? FacilityId,
+    string FacilityName,
+    string Reason,
+    ReferralUrgency Urgency);
+
+/// <summary>A.2 AncContact.</summary>
+public sealed record AncContactDto(
+    string Id,
+    string PregnancyId,
+    int ContactNo,
+    int WeekTarget,
+    DateOnly DueAt,
+    DateTime? DoneAt,
+    string? ProviderUserId,
+    FindingsDto? Findings,
+    IReadOnlyList<string> DangerSigns,
+    TriageLevel? TriageLevel,
+    IReadOnlyList<string> TriageReasons,
+    ReferralDto? Referral,
+    int Version,
+    DateTime UpdatedAt,
+    bool Deleted);
+
+/// <summary>A.2 Pregnancy. <c>gestationalAgeDays</c> and <c>nextContact</c> are computed on read.</summary>
+public sealed record PregnancyDto(
+    string Id,
+    string PatientId,
+    DateOnly? Lmp,
+    DateOnly Edd,
+    int Gravida,
+    int Para,
+    IReadOnlyList<string> RiskFactors,
+    RiskLevel RiskLevel,
+    PregnancyStatus Status,
+    BirthPlanDto? BirthPlan,
+    string RegisteredByUserId,
+    int GestationalAgeDays,
+    AncContactDto? NextContact,
+    int Version,
+    DateTime UpdatedAt,
+    bool Deleted);
