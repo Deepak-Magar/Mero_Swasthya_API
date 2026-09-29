@@ -5,6 +5,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\BuildingBlocks\MeroSwasthya.Shared\MeroSwasthya.Shared.csproj" />
     <ProjectReference Include="..\..\Patients\MeroSwasthya.Modules.Patients\MeroSwasthya.Modules.Patients.csproj" />
+    <ProjectReference Include="..\..\Maternal\MeroSwasthya.Modules.Maternal\MeroSwasthya.Modules.Maternal.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="MeroSwasthya.UnitTests" />

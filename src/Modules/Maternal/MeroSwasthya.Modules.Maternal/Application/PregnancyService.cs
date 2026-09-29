@@ -43,6 +43,7 @@ internal sealed class PregnancyService(
     ICurrentUser currentUser,
     IRulesService rules,
     IFacilityDirectory facilities,
+    IEnumerable<IPregnancyReminderSource> reminderSources,
     IClock clock)
 {
     public async Task<PregnancyCreatedResponse> CreateAsync(string patientId, CreatePregnancyRequest request, CancellationToken ct)
@@ -121,8 +122,11 @@ internal sealed class PregnancyService(
         await access.ReadAsync(pregnancy.PatientId, ct);
         var contacts = await ContactsAsync(id, ct);
         var delivery = await db.Deliveries.AsNoTracking().FirstOrDefaultAsync(d => d.PregnancyId == id && !d.Deleted, ct);
+        var reminders = new List<object>();
+        foreach (var source in reminderSources)
+            reminders.AddRange(await source.ForPregnancyAsync(id, ct));
         return new PregnancyBundleResponse(
-            pregnancy.ToDto(contacts, rules, clock.TodayUtc), contacts.Select(c => c.ToDto()).ToList(), delivery?.ToDto(), []);
+            pregnancy.ToDto(contacts, rules, clock.TodayUtc), contacts.Select(c => c.ToDto()).ToList(), delivery?.ToDto(), reminders);
     }
 
     /// <summary>Additive (not in A.4): every pregnancy of a patient, newest first.</summary>
