@@ -49,4 +49,7 @@ public interface IRulesService
 
     /// <summary>A.2: high if any risk factor is present.</summary>
     RiskLevel RiskLevelFor(IEnumerable<string> riskFactors);
+
+    /// <summary>A.5 triage: deterministic; the same input always gives the same level and reasons, in the same order.</summary>
+    TriageResult Triage(TriageInput contact);
 }

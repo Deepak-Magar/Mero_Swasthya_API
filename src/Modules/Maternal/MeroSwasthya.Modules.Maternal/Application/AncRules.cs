@@ -96,4 +96,6 @@ internal sealed class RulesService : IRulesService
         AncRules.Schedule.Select(e => new ScheduledContact(e.ContactNo, e.WeekTarget, lmp.AddDays(e.WeekTarget * 7))).ToList();
 
     public RiskLevel RiskLevelFor(IEnumerable<string> riskFactors) => riskFactors.Any() ? RiskLevel.High : RiskLevel.Normal;
+
+    public TriageResult Triage(TriageInput contact) => TriageEngine.Evaluate(contact, DangerSign);
 }
