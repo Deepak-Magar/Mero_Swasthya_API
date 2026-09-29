@@ -31,5 +31,15 @@ internal static class MaternalEndpoints
         pregnancies.MapPatch("/{id}", async (string id, PatchPregnancyRequest body, PregnancyService svc, CancellationToken ct) =>
                 ApiResults.Ok(new PregnancyResponse(await svc.PatchAsync(id, body, ct))))
             .Validate<PatchPregnancyRequest>();
+
+        // Additive (not in A.4): the schedule on its own.
+        pregnancies.MapGet("/{id}/contacts", async (string id, AncContactService svc, CancellationToken ct) =>
+            ApiResults.Ok(new ItemsResponse<AncContactDto>(await svc.ListAsync(id, ct))));
+
+        // contactNo is bound as text so that "9" or "x" is the A.3 422 RULE_VIOLATION rather than a routing 404.
+        pregnancies.MapPut("/{id}/contacts/{contactNo}", async (
+                string id, string contactNo, RecordContactRequest body, AncContactService svc, CancellationToken ct) =>
+                ApiResults.Ok(await svc.RecordAsync(id, contactNo, body, ct)))
+            .Validate<RecordContactRequest>();
     }
 }

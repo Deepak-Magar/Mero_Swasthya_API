@@ -26,6 +26,22 @@ public sealed record FacilityInfo(
     double Lng,
     string Municipality);
 
+/// <summary>A.2 Facility. <c>distanceKm</c> is null except in /facilities/nearby and Maternal's <c>nearestReferral</c>.</summary>
+public sealed record FacilityDto(
+    string Id,
+    string Name,
+    FacilityType Type,
+    bool HasBirthingCentre,
+    string? Phone,
+    double Lat,
+    double Lng,
+    string Municipality,
+    double? DistanceKm)
+{
+    public static FacilityDto From(FacilityInfo f, double? distanceKm = null) =>
+        new(f.Id, f.Name, f.Type, f.HasBirthingCentre, f.Phone, f.Lat, f.Lng, f.Municipality, distanceKm);
+}
+
 public interface IFacilityDirectory
 {
     Task<FacilityInfo?> FindAsync(string facilityId, CancellationToken ct = default);
