@@ -24,6 +24,7 @@ public sealed class MaternalModule : IModule
     {
         services.AddModuleDbContext<MaternalDbContext>(config, MaternalDbContext.Schema);
         services.AddSingleton<IRulesService, RulesService>();
+        services.AddScoped<MaternalAccess>();
         services.AddScoped<PregnancyService>();
         services.AddScoped<AncContactService>();
         services.AddScoped<DeliveryService>();

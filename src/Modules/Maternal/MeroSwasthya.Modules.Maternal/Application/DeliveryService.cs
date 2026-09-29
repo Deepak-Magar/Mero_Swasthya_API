@@ -2,7 +2,6 @@ using FluentValidation;
 using MeroSwasthya.Modules.Maternal.Contracts;
 using MeroSwasthya.Modules.Maternal.Domain;
 using MeroSwasthya.Modules.Maternal.Infrastructure;
-using MeroSwasthya.Modules.Patients.Contracts;
 using MeroSwasthya.Shared.Errors;
 using MeroSwasthya.Shared.Json;
 using MeroSwasthya.Shared.Security;
@@ -57,7 +56,7 @@ internal sealed class RecordDeliveryRequestValidator : AbstractValidator<RecordD
 internal sealed class DeliveryService(
     MaternalDbContext db,
     PregnancyService pregnancies,
-    IPatientAccess access,
+    MaternalAccess access,
     ICurrentUser currentUser,
     IRulesService rules,
     IClock clock)
@@ -65,7 +64,7 @@ internal sealed class DeliveryService(
     public async Task<DeliveryRecordedResponse> RecordAsync(string pregnancyId, RecordDeliveryRequest request, CancellationToken ct)
     {
         var pregnancy = await pregnancies.LoadAsync(pregnancyId, ct, track: true);
-        await access.RequireAppendAsync(pregnancy.PatientId, ct);
+        await access.AppendAsync(pregnancy.PatientId, ct);
         var user = await currentUser.GetAsync(ct);
 
         var existing = await db.Deliveries.AsNoTracking().FirstOrDefaultAsync(d => d.Id == request.Id, ct);
@@ -123,6 +122,7 @@ internal sealed class DeliveryService(
             throw AppException.RuleViolation("This pregnancy was changed by someone else; reload and try again");
         }
 
+        await access.WroteAsync(pregnancy.PatientId, ct);
         return new DeliveryRecordedResponse(delivery.ToDto(), pregnancy.ToDto(contacts, rules, clock.TodayUtc));
     }
 

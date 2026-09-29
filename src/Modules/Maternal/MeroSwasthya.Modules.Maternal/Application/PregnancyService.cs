@@ -2,7 +2,6 @@ using MeroSwasthya.Modules.Catalog.Contracts;
 using MeroSwasthya.Modules.Maternal.Contracts;
 using MeroSwasthya.Modules.Maternal.Domain;
 using MeroSwasthya.Modules.Maternal.Infrastructure;
-using MeroSwasthya.Modules.Patients.Contracts;
 using MeroSwasthya.Modules.Patients.Domain;
 using MeroSwasthya.Shared.Errors;
 using MeroSwasthya.Shared.Ids;
@@ -40,7 +39,7 @@ internal static class MaternalMapping
 /// <summary>A.4 "Maternal": register (idempotent on the client id), read, list, patch.</summary>
 internal sealed class PregnancyService(
     MaternalDbContext db,
-    IPatientAccess access,
+    MaternalAccess access,
     ICurrentUser currentUser,
     IRulesService rules,
     IFacilityDirectory facilities,
@@ -49,7 +48,7 @@ internal sealed class PregnancyService(
     public async Task<PregnancyCreatedResponse> CreateAsync(string patientId, CreatePregnancyRequest request, CancellationToken ct)
     {
         // Owner, or a health worker (provider or FCHV) with an active append grant.
-        var patient = await access.RequireAppendAsync(patientId, ct);
+        var patient = await access.AppendAsync(patientId, ct);
         var user = await currentUser.GetAsync(ct);
 
         var existing = await db.Pregnancies.AsNoTracking().FirstOrDefaultAsync(p => p.Id == request.Id, ct);
@@ -112,13 +111,14 @@ internal sealed class PregnancyService(
             return await IdempotentAsync(winner, patientId, ct);
         }
 
+        await access.WroteAsync(patientId, ct);
         return new PregnancyCreatedResponse(pregnancy.ToDto(contacts, rules, clock.TodayUtc), contacts.Select(c => c.ToDto()).ToList());
     }
 
     public async Task<PregnancyBundleResponse> GetAsync(string id, CancellationToken ct)
     {
         var pregnancy = await LoadAsync(id, ct);
-        await access.RequireReadAsync(pregnancy.PatientId, ct);
+        await access.ReadAsync(pregnancy.PatientId, ct);
         var contacts = await ContactsAsync(id, ct);
         var delivery = await db.Deliveries.AsNoTracking().FirstOrDefaultAsync(d => d.PregnancyId == id && !d.Deleted, ct);
         return new PregnancyBundleResponse(
@@ -128,7 +128,7 @@ internal sealed class PregnancyService(
     /// <summary>Additive (not in A.4): every pregnancy of a patient, newest first.</summary>
     public async Task<IReadOnlyList<PregnancyDto>> ListAsync(string patientId, CancellationToken ct)
     {
-        await access.RequireReadAsync(patientId, ct);
+        await access.ReadAsync(patientId, ct);
         var pregnancies = await db.Pregnancies.AsNoTracking()
             .Where(p => p.PatientId == patientId && !p.Deleted)
             .OrderByDescending(p => p.Edd).ThenByDescending(p => p.Id)
@@ -143,7 +143,7 @@ internal sealed class PregnancyService(
     public async Task<PregnancyDto> PatchAsync(string id, PatchPregnancyRequest request, CancellationToken ct)
     {
         var pregnancy = await LoadAsync(id, ct, track: true);
-        await access.RequireAppendAsync(pregnancy.PatientId, ct);
+        await access.AppendAsync(pregnancy.PatientId, ct);
         var contacts = await ContactsAsync(id, ct);
         var today = clock.TodayUtc;
 
@@ -173,6 +173,7 @@ internal sealed class PregnancyService(
             var current = await db.Pregnancies.AsNoTracking().FirstAsync(p => p.Id == id, ct);
             throw AppException.VersionConflict(current.ToDto(contacts, rules, today));
         }
+        await access.WroteAsync(pregnancy.PatientId, ct);
         return pregnancy.ToDto(contacts, rules, today);
     }
 

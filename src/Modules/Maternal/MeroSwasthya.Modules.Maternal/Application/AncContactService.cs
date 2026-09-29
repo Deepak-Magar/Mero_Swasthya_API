@@ -3,7 +3,6 @@ using MeroSwasthya.Modules.Catalog.Contracts;
 using MeroSwasthya.Modules.Maternal.Contracts;
 using MeroSwasthya.Modules.Maternal.Domain;
 using MeroSwasthya.Modules.Maternal.Infrastructure;
-using MeroSwasthya.Modules.Patients.Contracts;
 using MeroSwasthya.Shared.Errors;
 using MeroSwasthya.Shared.Json;
 using MeroSwasthya.Shared.Security;
@@ -69,7 +68,7 @@ internal sealed class RecordContactRequestValidator : AbstractValidator<RecordCo
 internal sealed class AncContactService(
     MaternalDbContext db,
     PregnancyService pregnancies,
-    IPatientAccess access,
+    MaternalAccess access,
     ICurrentUser currentUser,
     IRulesService rules,
     IFacilityDirectory facilities,
@@ -81,7 +80,7 @@ internal sealed class AncContactService(
     public async Task<IReadOnlyList<AncContactDto>> ListAsync(string pregnancyId, CancellationToken ct)
     {
         var pregnancy = await pregnancies.LoadAsync(pregnancyId, ct);
-        await access.RequireReadAsync(pregnancy.PatientId, ct);
+        await access.ReadAsync(pregnancy.PatientId, ct);
         return (await pregnancies.ContactsAsync(pregnancyId, ct)).Select(c => c.ToDto()).ToList();
     }
 
@@ -92,7 +91,7 @@ internal sealed class AncContactService(
     public async Task<ContactRecordedResponse> RecordAsync(string pregnancyId, string contactNo, RecordContactRequest request, CancellationToken ct)
     {
         var pregnancy = await pregnancies.LoadAsync(pregnancyId, ct);
-        await access.RequireAppendAsync(pregnancy.PatientId, ct);
+        await access.AppendAsync(pregnancy.PatientId, ct);
         var user = await currentUser.GetAsync(ct);
 
         // A.3: contactNo outside 1..8 is a rule violation, not a routing miss.
@@ -127,6 +126,7 @@ internal sealed class AncContactService(
         contact.Version++;
         contact.UpdatedAt = now;
         await db.SaveChangesAsync(ct);
+        await access.WroteAsync(pregnancy.PatientId, ct); // A.4: "Writes AuditEntry contact_recorded."
 
         var nearest = triage.Level == TriageLevel.Green ? null : await NearestReferralAsync(user, pregnancy, ct);
         return new ContactRecordedResponse(contact.ToDto(), nearest);
