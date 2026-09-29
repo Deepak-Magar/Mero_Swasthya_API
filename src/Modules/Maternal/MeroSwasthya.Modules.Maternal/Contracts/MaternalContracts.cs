@@ -104,3 +104,18 @@ public sealed record PregnancyDto(
     int Version,
     DateTime UpdatedAt,
     bool Deleted);
+
+/// <summary>A.2 Delivery.</summary>
+public sealed record DeliveryDto(
+    string Id,
+    string PregnancyId,
+    DateTime DeliveredAt,
+    DeliveryPlace Place,
+    DeliveryMode Mode,
+    DeliveryOutcome Outcome,
+    double? BabyWeightKg,
+    BabySex? BabySex,
+    IReadOnlyList<string> Complications,
+    int Version,
+    DateTime UpdatedAt,
+    bool Deleted);

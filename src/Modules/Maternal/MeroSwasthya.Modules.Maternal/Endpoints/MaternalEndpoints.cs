@@ -41,5 +41,9 @@ internal static class MaternalEndpoints
                 string id, string contactNo, RecordContactRequest body, AncContactService svc, CancellationToken ct) =>
                 ApiResults.Ok(await svc.RecordAsync(id, contactNo, body, ct)))
             .Validate<RecordContactRequest>();
+
+        pregnancies.MapPost("/{id}/delivery", async (string id, RecordDeliveryRequest body, DeliveryService svc, CancellationToken ct) =>
+                ApiResults.Ok(await svc.RecordAsync(id, body, ct)))
+            .Validate<RecordDeliveryRequest>();
     }
 }

@@ -26,6 +26,10 @@ internal static class MaternalMapping
         p.RegisteredByUserId, rules.GestationalAgeDays(p.Edd, today), NextContact(contacts)?.ToDto(),
         p.Version, p.UpdatedAt, p.Deleted);
 
+    public static DeliveryDto ToDto(this Delivery d) => new(
+        d.Id, d.PregnancyId, d.DeliveredAt, d.Place, d.Mode, d.Outcome, d.BabyWeightKg, d.BabySex,
+        d.Complications.ToList(), d.Version, d.UpdatedAt, d.Deleted);
+
     public static AncContact? NextContact(IEnumerable<AncContact> contacts) =>
         contacts.Where(c => c.DoneAt is null && !c.Deleted).OrderBy(c => c.ContactNo).FirstOrDefault();
 
@@ -116,7 +120,9 @@ internal sealed class PregnancyService(
         var pregnancy = await LoadAsync(id, ct);
         await access.RequireReadAsync(pregnancy.PatientId, ct);
         var contacts = await ContactsAsync(id, ct);
-        return new PregnancyBundleResponse(pregnancy.ToDto(contacts, rules, clock.TodayUtc), contacts.Select(c => c.ToDto()).ToList(), null, []);
+        var delivery = await db.Deliveries.AsNoTracking().FirstOrDefaultAsync(d => d.PregnancyId == id && !d.Deleted, ct);
+        return new PregnancyBundleResponse(
+            pregnancy.ToDto(contacts, rules, clock.TodayUtc), contacts.Select(c => c.ToDto()).ToList(), delivery?.ToDto(), []);
     }
 
     /// <summary>Additive (not in A.4): every pregnancy of a patient, newest first.</summary>

@@ -43,11 +43,11 @@ internal sealed record PregnancyCreatedResponse(PregnancyDto Pregnancy, IReadOnl
 
 internal sealed record PregnancyResponse(PregnancyDto Pregnancy);
 
-/// <summary>A.4 GET /pregnancies/:id — delivery and reminders arrive with the Delivery and Reminders features.</summary>
+/// <summary>A.4 GET /pregnancies/:id — reminders arrive with the Reminders module.</summary>
 internal sealed record PregnancyBundleResponse(
     PregnancyDto Pregnancy,
     IReadOnlyList<AncContactDto> AncContacts,
-    object? Delivery,
+    DeliveryDto? Delivery,
     IReadOnlyList<object> Reminders);
 
 internal static class PregnancyRules

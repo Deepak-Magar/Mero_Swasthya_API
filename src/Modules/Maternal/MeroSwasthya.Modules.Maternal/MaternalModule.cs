@@ -3,6 +3,7 @@ using MeroSwasthya.Modules.Maternal.Application;
 using MeroSwasthya.Modules.Maternal.Contracts;
 using MeroSwasthya.Modules.Maternal.Endpoints;
 using MeroSwasthya.Modules.Maternal.Infrastructure;
+using MeroSwasthya.Modules.Patients.Contracts;
 using MeroSwasthya.Shared.Modules;
 using MeroSwasthya.Shared.Persistence;
 using Microsoft.AspNetCore.Routing;
@@ -25,6 +26,11 @@ public sealed class MaternalModule : IModule
         services.AddSingleton<IRulesService, RulesService>();
         services.AddScoped<PregnancyService>();
         services.AddScoped<AncContactService>();
+        services.AddScoped<DeliveryService>();
+        services.AddScoped<ActivePregnancyQuery>();
+        services.AddScoped<IPatientSummaryContributor, MaternalSummaryContributor>();
+        services.AddScoped<ITimelineContributor, MaternalTimelineContributor>();
+        services.AddScoped<IActivePregnancySource, ActivePregnancySource>();
         services.AddScoped<IModuleInitializer, MaternalModuleInitializer>();
         services.AddValidatorsFromAssemblyContaining<MaternalModule>(includeInternalTypes: true);
     }

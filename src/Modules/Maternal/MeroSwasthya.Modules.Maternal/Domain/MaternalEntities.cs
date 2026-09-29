@@ -55,3 +55,23 @@ internal sealed class AncContact
     public bool Deleted { get; set; }
     public DateTime CreatedAt { get; init; }
 }
+
+/// <summary>A.2 Delivery — the outcome record that closes a pregnancy (status → delivered). Syncable.</summary>
+internal sealed class Delivery
+{
+    public required string Id { get; init; }
+    public required string PregnancyId { get; init; }
+    public required string PatientId { get; init; }
+    public DateTime DeliveredAt { get; init; }
+    public DeliveryPlace Place { get; init; }
+    public DeliveryMode Mode { get; init; }
+    public DeliveryOutcome Outcome { get; init; }
+    public double? BabyWeightKg { get; init; }
+    public BabySex? BabySex { get; init; }
+    public List<string> Complications { get; init; } = [];
+    public required string RecordedByUserId { get; init; }
+    public int Version { get; set; } = 1;
+    public DateTime UpdatedAt { get; set; }
+    public bool Deleted { get; set; }
+    public DateTime CreatedAt { get; init; }
+}

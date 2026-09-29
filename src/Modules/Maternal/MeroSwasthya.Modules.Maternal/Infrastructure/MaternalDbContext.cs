@@ -12,6 +12,7 @@ internal sealed class MaternalDbContext(DbContextOptions<MaternalDbContext> opti
 
     public DbSet<Pregnancy> Pregnancies => Set<Pregnancy>();
     public DbSet<AncContact> AncContacts => Set<AncContact>();
+    public DbSet<Delivery> Deliveries => Set<Delivery>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -44,6 +45,23 @@ internal sealed class MaternalDbContext(DbContextOptions<MaternalDbContext> opti
             e.Property(x => x.Version).IsConcurrencyToken();
             e.HasIndex(x => new { x.PregnancyId, x.ContactNo }).IsUnique();
             e.HasIndex(x => new { x.PatientId, x.DoneAt });
+            e.HasIndex(x => x.UpdatedAt);
+        });
+
+        b.Entity<Delivery>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasMaxLength(64);
+            e.Property(x => x.PregnancyId).HasMaxLength(64);
+            e.Property(x => x.PatientId).HasMaxLength(64);
+            e.Property(x => x.RecordedByUserId).HasMaxLength(64);
+            e.Property(x => x.Place).HasConversion(v => v.ToWire(), v => WireEnum.Parse<DeliveryPlace>(v)).HasMaxLength(16);
+            e.Property(x => x.Mode).HasConversion(v => v.ToWire(), v => WireEnum.Parse<DeliveryMode>(v)).HasMaxLength(8);
+            e.Property(x => x.Outcome).HasConversion(v => v.ToWire(), v => WireEnum.Parse<DeliveryOutcome>(v)).HasMaxLength(16);
+            e.Property(x => x.BabySex).HasConversion(v => v!.Value.ToWire(), v => WireEnum.Parse<BabySex>(v)).HasMaxLength(8);
+            e.Property(x => x.Version).IsConcurrencyToken();
+            e.HasIndex(x => x.PregnancyId);
+            e.HasIndex(x => new { x.PatientId, x.DeliveredAt });
             e.HasIndex(x => x.UpdatedAt);
         });
     }

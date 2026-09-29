@@ -56,3 +56,34 @@ internal static class MaternalEnums
     public static bool IsProteinuria(this UrineProtein? value) =>
         value is UrineProtein.One or UrineProtein.Two or UrineProtein.Three;
 }
+
+/// <summary>A.2 Delivery.place.</summary>
+public enum DeliveryPlace
+{
+    [WireName("home")] Home,
+    [WireName("birthing_centre")] BirthingCentre,
+    [WireName("hospital")] Hospital,
+    [WireName("on_the_way")] OnTheWay,
+}
+
+/// <summary>A.2 Delivery.mode.</summary>
+public enum DeliveryMode
+{
+    [WireName("normal")] Normal,
+    [WireName("assisted")] Assisted,
+    [WireName("cs")] Cs,
+}
+
+/// <summary>A.2 Delivery.outcome.</summary>
+public enum DeliveryOutcome
+{
+    [WireName("live_birth")] LiveBirth,
+    [WireName("stillbirth")] Stillbirth,
+}
+
+/// <summary>A.2 Delivery.babySex.</summary>
+public enum BabySex
+{
+    [WireName("female")] Female,
+    [WireName("male")] Male,
+}
