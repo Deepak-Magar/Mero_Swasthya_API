@@ -72,22 +72,67 @@ for the OTP case, while the unlock screen just reports a failed unlock). Restart
 
 ## 5. What works against this backend today
 
-Sign-in, set PIN, PIN login, token refresh, provider activation, `/me`, the family list, creating
-and editing profiles (online), code lists, rules refresh, config flags, nearest facilities, and — since
-session 2 — **QR share → scan → redeem** across two phones (patient phone draws the code, provider phone
-scans it and receives the bundle), revoke, the provider's "recent patients" (granted patients in
-`GET /patients`), **visits** (provider with an append grant, or the owner as "Self-reported"),
-**document capture** (presign → upload → complete, then viewing the photo), the patient summary with
-problems / medicines / last vitals, the unified timeline, and the owner's **access log** (S16).
+Sign-in, set PIN, PIN login, token refresh, provider activation, `/me`, the family list, code lists,
+rules refresh, config flags, nearest facilities, and — since session 2 — **QR share → scan → redeem**
+across two phones (patient phone draws the code, provider phone scans it and receives the bundle),
+revoke, the provider's "recent patients" (granted patients in `GET /patients`), **document capture**
+(presign → upload → complete, then viewing the photo), the patient summary with problems / medicines /
+last vitals, the unified timeline, the owner's **access log** (S16) and — since session 3 — the
+**reminders list** (S15). Creating / editing profiles and recording **visits** (provider with an append
+grant, or the owner as "Self-reported") work on the server, but the app sends them through its sync
+outbox — see "Still needs Session 4" below.
 
 Printed card (A.7): a share with `ttlMinutes` ≥ 1440 is `longLived`; redeeming it needs the patient's
 PIN in the request (`403 FORBIDDEN` with `details.pin = required | invalid` otherwise).
 
-Not yet — keep **Demo data mode on** for these demos until the module lands: pregnancy / ANC / delivery /
-immunisation / growth (Maternal; the redeem bundle carries `pregnancy: null, ancContacts: []`),
-**offline sync push/pull** (Sync — the app's background sync gets `404 NOT_FOUND` envelopes from
-`/sync/*`) and reminders / `/demo/sms` (Reminders). AI summaries answer `501 NOT_IMPLEMENTED` and
-`/config` reports `aiSummaryEnabled: false`, so the app hides the button.
+**Since session 3 the server side of maternal care and reminders is complete** (§5.1), so what the app
+*reads* carries it: the redeem bundle has `pregnancy` + `ancContacts` for a woman with an active pregnancy,
+`GET /patients/:id` has `summary.activePregnancy`, the timeline has `pregnancy_registered` / `anc_contact`
+(badge = triage) / `delivery`, and `GET /patients/:id/reminders` (S15) returns real rows. With the seeded
+account, Sita's profile shows a week-30 pregnancy with contacts 1–3 recorded and 30 reminders (2 sent).
+
+**Still needs Session 4 (Sync) — read this before a demo with Demo data mode off.** The app does not call
+the write endpoints for profiles, visits, pregnancies, ANC contacts or deliveries. Every write on those
+tables goes through `SyncableRepo.writeAndEnqueue` (local row + outbox op) and reaches the server only by
+`POST /sync/push`; `PatientsApi.addVisit` and the whole `PregnanciesApi` have no caller in `lib/` (searched
+2026-09-30). Until `/sync/push` exists the push gets a `404 NOT_FOUND` envelope and those records stay on
+the phone — a pregnancy registered on the phone gets no server triage and no reminders yet. What the app
+does call directly, and what therefore works today: auth, `GET /patients`, timeline, audit, reminders,
+grants (create / redeem / revoke), document presign / upload / complete, code lists, rules, config,
+facilities. The endpoints themselves are exercised by `scripts\smoke.ps1` and the contract tests.
+
+Not yet: immunisation / growth (addendum §1–2), sync push/pull. AI summaries answer `501 NOT_IMPLEMENTED`
+and `/config` reports `aiSummaryEnabled: false`, so the app hides the button.
+
+### 5.1 Maternal and reminders — shapes worth knowing on the Flutter side
+
+* **Triage is the server's.** `PUT /pregnancies/:id/contacts/:contactNo` returns `ancContact.triageLevel` /
+  `triageReasons` (English texts, same wording and order as `triage.dart`) and `nearestReferral`
+  (a Facility with `distanceKm`, or `null` when green or when no facility can be worked out).
+  `contactNo` outside 1..8 is `422 RULE_VIOLATION`, not `404`.
+* **`nextContact`** is the earliest contact with `doneAt = null` (A.2), so for a pregnancy registered
+  late it is an overdue contact 1, not the next one by date.
+* **After a delivery** (or `status: ended`) the contacts that were never recorded come back `deleted: true`
+  and are left out of `GET /pregnancies/:id`; the pregnancy is `delivered` and rejects further contacts
+  (`422`). `PATCH /pregnancies/:id` accepts `birthPlan`, `riskFactors` and `status: "ended"` only.
+* **Audit:** every maternal write (register, patch, contact, delivery) appears in S16 as `contact_recorded`.
+* **Reminders** (`GET /patients/:id/reminders`, earliest first, default 50, `?limit=` up to 200):
+  * `dueAt` is always `…T03:15:00.000Z` (09:00 Nepal time) — the same instant `reminders_preview.dart`
+    computes, so a local preview and the server row line up.
+  * One row per recipient: `recipientRole: "patient"` is the phone of the account that owns the profile,
+    `"family"` is `emergencyContactPhone` (ANC reminders only; none when it is unset or the same number).
+  * `messageNp` carries the BS date in Nepali digits; a name or facility stored in Latin letters stays
+    in Latin letters ("Sita Chaudhary को ४ औं गर्भ जाँच २०८३-०६-१४ मा Ghorahi Health Post मा छ।").
+  * Only messages still ahead at registration exist. Recording a contact, a delivery, or ending the
+    pregnancy makes the pending ones disappear from the list (there is no "cancelled" status);
+    `status` is only ever `pending`, `sent` or `failed`.
+  * A pregnancy's rows are also in `GET /pregnancies/:id` → `reminders`.
+  * Additive, not used by the app today: `POST /reminders/:id/done`, `POST /reminders/:id/cancel`,
+    `GET /patients/:id/pregnancies`, `GET /pregnancies/:id/contacts`.
+* **SMS panel.** `GET /api/v1/demo/sms` (the A.4 path, `{ items: [{ to, text, sentAt }] }`, no auth) and the
+  projector page `http://127.0.0.1:5000/api/v1/dev/sms` exist only when the API runs in Development with
+  `Features:SmsMode=mock` (what `scripts\dev.ps1` starts); otherwise they are `404`. The outbox is in
+  memory: it restarts with Sita's two seeded messages. Reminders are delivered by a poll every 60 s.
 
 ## 6. Document uploads (MinIO or the dev fallback)
 

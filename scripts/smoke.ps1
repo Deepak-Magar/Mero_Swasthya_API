@@ -4,7 +4,11 @@
   health -> otp request -> otp verify -> pin (login, or set for a new account) -> me -> patients
   -> patient summary -> timeline -> codelists -> rules -> config -> nearby, then the session-2 walk:
   patient shares Ram (grant) -> provider logs in -> redeem -> add visit -> presign / PUT / complete a
-  document -> timeline + summary -> patient reads the audit log.
+  document -> timeline + summary -> patient reads the audit log, then the session-3 walk on a throwaway
+  profile of a separate smoke account (the seeded family stays as it is): register a pregnancy ->
+  reminders scheduled -> red ANC contact (triage + nearest referral, its reminders cancelled) ->
+  delivery (pregnancy closed, remaining reminders cancelled) -> timeline -> the seeded reminders ->
+  the mock SMS outbox.
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File scripts\smoke.ps1
@@ -14,7 +18,8 @@ param(
     [string]$BaseUrl = 'http://127.0.0.1:5000/api/v1',
     [string]$Phone = '+9779801000001',
     [string]$Pin = '1234',
-    [string]$ProviderPhone = '+9779801000002'
+    [string]$ProviderPhone = '+9779801000002',
+    [string]$SmokePhone = '+9779801999001'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -173,6 +178,98 @@ Step 'GET  /patients/:id (summary)' $r {
 
 $r = Invoke-Api GET "/patients/$ramId/audit?limit=6" $null $access
 Step 'GET  /patients/:id/audit (owner)' $r { param($d) (($d.items | ForEach-Object { $_.action }) -join ', ') }
+
+# ---- Session 3: pregnancy -> red contact -> delivery -> reminders ---------------------------------
+# A separate account owns a fresh profile on every run, so Sita's seeded pregnancy is never touched.
+$r = Invoke-Api POST '/auth/otp/request' @{ phone = $SmokePhone }
+$otp = if ($r.Body.data.demoOtp) { $r.Body.data.demoOtp } else { '123456' }
+$r = Invoke-Api POST '/auth/otp/verify' @{ phone = $SmokePhone; otp = $otp }
+if ($r.Body.data.hasPin) {
+    $r = Invoke-Api POST '/auth/pin/login' @{ phone = $SmokePhone; pin = $Pin }
+} else {
+    $r = Invoke-Api POST '/auth/pin/set' @{ pin = $Pin; name = 'Smoke Test' } $r.Body.data.tempToken
+}
+Step 'smoke account (otp + pin)' $r { param($d) "user=$($d.user.id) phone=$($d.user.phone) role=$($d.user.role)" }
+$smoke = $r.Body.data.accessToken
+
+$motherId = 'p_' + [guid]::NewGuid()
+$r = Invoke-Api POST '/patients' @{
+    id = $motherId; name = 'Smoke Mother'; sex = 'female'; dob = '1998-05-14'; emergencyContactPhone = '+9779801999002'
+} $smoke
+Step 'POST /patients (smoke mother)' $r { param($d) "patient=$($d.patient.id) emergencyContactPhone=$($d.patient.emergencyContactPhone)" }
+
+$r = Invoke-Api POST '/grants' @{ patientId = $motherId; scope = 'append'; ttlMinutes = 10 } $smoke
+$r = Invoke-Api POST '/grants/redeem' @{ qrPayload = $r.Body.data.qrPayload } $provider
+Step 'POST /grants + /grants/redeem' $r { param($d) "patient=$($d.patient.name) scope=$($d.grant.scope) pregnancy=$([bool]$d.pregnancy)" }
+
+# LMP 200 days ago = week 28: contacts 1-3 are past, contact 4 (week 30) is due in 10 days.
+$today = (Get-Date).ToUniversalTime().Date
+$pregnancyId = 'pg_' + [guid]::NewGuid()
+$r = Invoke-Api POST "/patients/$motherId/pregnancies" @{
+    id = $pregnancyId; lmp = $today.AddDays(-200).ToString('yyyy-MM-dd'); edd = $null
+    gravida = 2; para = 1; riskFactors = @(); birthPlan = $null
+} $provider
+Step 'POST /patients/:id/pregnancies' $r {
+    param($d) "pregnancy=$($d.pregnancy.id) edd=$($d.pregnancy.edd) week=$([int][math]::Floor($d.pregnancy.gestationalAgeDays / 7)) risk=$($d.pregnancy.riskLevel) contacts=$($d.ancContacts.Count) next=#$($d.pregnancy.nextContact.contactNo) due $($d.pregnancy.nextContact.dueAt)"
+}
+
+$r = Invoke-Api GET "/patients/$motherId/reminders?limit=200" $null $provider
+Step 'GET  /patients/:id/reminders' $r {
+    param($d) $g = $d.items | Group-Object kind | ForEach-Object { "$($_.Name)=$($_.Count)" }
+    "items=$($d.items.Count) ($($g -join ' ')) first: $($d.items[0].dueAt) -> $($d.items[0].recipientRole) | $($d.items[0].messageEn)"
+}
+$before = $r.Body.data.items.Count
+
+# The A.4 example: BP 150/95 with severe headache -> red, refer now.
+$r = Invoke-Api PUT "/pregnancies/$pregnancyId/contacts/4" @{
+    findings = @{ weightKg = 58; bpSys = 150; bpDia = 95; fundalHeightCm = 29; fhrBpm = 142; hbGdl = 9.2; urineProtein = 'trace'; ifaGiven = $true; fetalMovement = 'normal' }
+    dangerSigns = @('SEVERE_HEADACHE_BLURRED_VISION')
+    referral = @{ facilityId = 'f_0002'; facilityName = 'Rapti Provincial Hospital'; reason = 'Suspected pre-eclampsia'; urgency = 'urgent' }
+} $provider
+Step 'PUT  /pregnancies/:id/contacts/4' $r {
+    param($d) "triage=$($d.ancContact.triageLevel) reasons=[$($d.ancContact.triageReasons -join '; ')] nearestReferral=$($d.nearestReferral.name) ($($d.nearestReferral.distanceKm) km)"
+}
+
+$r = Invoke-Api GET "/patients/$motherId/reminders?limit=200" $null $provider
+Step 'GET  /patients/:id/reminders' $r { param($d) "items=$($d.items.Count) (was $before; contact 4's pending reminders cancelled)" }
+
+$r = Invoke-Api POST "/pregnancies/$pregnancyId/delivery" @{
+    id = 'dl_' + [guid]::NewGuid(); deliveredAt = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'")
+    place = 'hospital'; mode = 'normal'; outcome = 'live_birth'; babyWeightKg = 2.9; babySex = 'female'; complications = @()
+} $provider
+Step 'POST /pregnancies/:id/delivery' $r {
+    param($d) "delivery=$($d.delivery.id) place=$($d.delivery.place) outcome=$($d.delivery.outcome) pregnancy.status=$($d.pregnancy.status)"
+}
+
+$r = Invoke-Api GET "/pregnancies/$pregnancyId" $null $smoke
+Step 'GET  /pregnancies/:id (owner)' $r {
+    param($d) "status=$($d.pregnancy.status) contacts=$($d.ancContacts.Count) (recorded only) delivery=$([bool]$d.delivery) reminders=$($d.reminders.Count)"
+}
+
+$r = Invoke-Api GET "/patients/$motherId/timeline?limit=10" $null $smoke
+Step 'GET  /patients/:id/timeline' $r { param($d) (($d.items | ForEach-Object { "$($_.kind)$(if ($_.badge) { "[$($_.badge)]" }): $($_.title)" }) -join ' | ') }
+
+$sitaId = 'p_a1a1a1a1-0000-4000-8000-000000000001'
+$r = Invoke-Api GET "/patients/$sitaId/reminders?limit=200" $null $access
+Step 'GET  /patients/Sita/reminders' $r {
+    param($d) $g = $d.items | Group-Object status | ForEach-Object { "$($_.Name)=$($_.Count)" }
+    $sent = $d.items | Where-Object { $_.status -eq 'sent' } | Select-Object -First 1
+    "items=$($d.items.Count) ($($g -join ' ')) sent: $($sent.sentAt) -> $($sent.recipientPhone) | $($sent.messageNp)"
+}
+
+$r = Invoke-Api GET "/patients/$ramId/reminders?limit=200" $null $access
+Step 'GET  /patients/Ram/reminders' $r {
+    param($d) $last = $d.items | Select-Object -Last 1
+    "items=$($d.items.Count) latest: $($last.kind) $($last.dueAt) $($last.status) | $($last.messageEn)"
+}
+
+# Development + Features:SmsMode=mock only; anywhere else the outbox is not mapped.
+$r = Invoke-Api GET '/dev/sms.json'
+if ($r.Status -eq 404) {
+    Write-Host ('[SKIP] {0,-34} HTTP 404  mock SMS outbox is not mapped on this server' -f 'GET  /dev/sms.json')
+} else {
+    Step 'GET  /dev/sms.json' $r { param($d) "items=$($d.items.Count) newest: $($d.items[0].sentAt) -> $($d.items[0].to) | $($d.items[0].text)" }
+}
 
 Write-Host ('-' * 100)
 if ($script:failures -gt 0) {

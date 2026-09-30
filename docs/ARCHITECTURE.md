@@ -15,7 +15,8 @@ MeroSwasthya.sln
 │                                           IClock, uuid v5 ids, cursors, IModule / IModuleInitializer,
 │                                           ICurrentUser, Authz, JwtSettings + SigningKeys, FeatureFlags,
 │                                           FluentValidation filter, ModuleDb (DbContext-per-schema),
-│                                           JsonColumn (jsonb value objects), in-process domain events
+│                                           JsonColumn (jsonb value objects), in-process domain events,
+│                                           ISmsSender (implemented by Reminders)
 ├─ src/Modules/Catalog    schema catalog    facilities (+ nearby), codelists + version, /rules, /config
 ├─ src/Modules/Auth       schema auth       OTP, PIN (Argon2id), JWT access + temp, refresh rotation,
 │                                           invite activation, /me, ICurrentUser implementation
@@ -25,9 +26,11 @@ MeroSwasthya.sln
 │                                           IPatientGrantSource + IGrantAuthorization
 ├─ src/Modules/Clinical   schema clinical   visits (+ prescriptions), documents (MinIO / local disk),
 │                                           summary + timeline contributions
-├─ src/Modules/Maternal   (placeholder)     pregnancies, ANC contacts, triage, deliveries,
-│                                           immunisations, growth
-├─ src/Modules/Reminders  (placeholder)     reminders, mock SMS outbox
+├─ src/Modules/Maternal   schema maternal   pregnancies, ANC contacts, A.5 rules + triage engine, deliveries,
+│                                           summary / timeline / redeem-bundle contributions
+│                                           (immunisations and growth: not yet)
+├─ src/Modules/Reminders  schema reminders  reminders scheduled from domain events, delivery worker,
+│                                           ISmsSender implementations, mock SMS outbox (/dev/sms)
 ├─ src/Modules/Sync       (placeholder)     /sync/push, /sync/pull
 ├─ tests/MeroSwasthya.ContractTests         real HTTP (WebApplicationFactory) + real PostgreSQL
 └─ tests/MeroSwasthya.UnitTests             helpers, JSON conventions, validators, architecture rules
@@ -37,15 +40,17 @@ Dependency direction (project references) — arrows point at what a module may 
 
 ```
             Shared  ◄──────────── every project
-Catalog ◄── Patients ◄── Audit ◄── Grants, Clinical      (Maternal will use Audit too)
-   ▲            ▲  ◄──────────── Maternal, Reminders, Sync
+Catalog ◄── Patients ◄── Audit ◄── Grants, Clinical, Maternal
+   ▲            ▲  ◄──────────── Reminders, Sync
    └── Clinical, Maternal (labels, facilities, rules)
+Reminders ──► Maternal, Clinical (their Contracts: domain events, IPregnancyDirectory), Auth (IUserDirectory)
 Auth    (depends on Shared only; reached through Shared.ICurrentUser, Auth.Contracts.IUserDirectory,
          Auth.Contracts.IPinVerifier — Grants uses the last one for the printed card)
 ```
 
 `Patients` never references the modules that extend it (enforced by `ArchitectureTests`). They plug
-in through interfaces that Patients owns.
+in through interfaces that Patients owns. In the same way Maternal and Clinical never reference
+Reminders: they publish domain events and Reminders subscribes.
 
 ## 2. Inside a module
 
@@ -68,25 +73,47 @@ build's tests if an implementation type leaks.
 | Interface | Owner | Implemented by | Used for |
 |---|---|---|---|
 | `ICurrentUser` | Shared | Auth | caller id from the JWT, role/facility from `auth.users` (per request) |
-| `IUserDirectory` | Auth | Auth | actor names for audit, owner phones for reminders (later) |
+| `IUserDirectory` | Auth | Auth | actor names for audit; owner phones and the health worker's facility for reminders |
 | `ICodeListLookup` | Catalog | Catalog | activeProblems labels, drug names |
 | `IFacilityDirectory` | Catalog | Catalog | nearestReferral, visit facility names |
 | `IRulesProvider` | Catalog | Catalog | the A.5 document (Maternal parses it) |
 | `IPatientAccess` | Patients | Patients | owner / read / append checks → 404, 403 FORBIDDEN, 403 GRANT_EXPIRED |
 | `IPatientDirectory` | Patients | Patients | server-side jobs that bypass access checks |
 | `IPatientGrantSource` | Patients | Grants | "does this health worker hold an active grant?" (level + expired flag) |
-| `IPatientSummaryContributor` | Patients | Clinical (Maternal next) | currentMedicines, lastVitals, activeProblems.since, … |
-| `ITimelineContributor` | Patients | Clinical (Maternal next) | timeline items of their own kinds |
+| `IPatientSummaryContributor` | Patients | Clinical, Maternal | currentMedicines, lastVitals, activeProblems.since, activePregnancy, … |
+| `ITimelineContributor` | Patients | Clinical, Maternal | timeline items of their own kinds |
 | `IPatientReadObserver` | Patients | Audit | `record_viewed` when a non-owner reads a patient |
-| `IActivePregnancySource` | Patients | **Maternal (next)** | `pregnancy` + `ancContacts` in the redeem bundle |
-| `IAuditWriter` | Audit | Audit | grant_created / redeemed / revoked, visit_added, document_added (contact_recorded next) |
+| `IActivePregnancySource` | Patients | Maternal | `pregnancy` + `ancContacts` in the redeem bundle |
+| `IAuditWriter` | Audit | Audit | grant_created / redeemed / revoked, visit_added, document_added, contact_recorded |
 | `IGrantAuthorization` | Grants | Grants | `CanReadPatientAsync` / `CanAppendPatientAsync` booleans |
 | `IPinVerifier` | Auth | Auth | patient PIN check for the A.7 printed card (shares the lockout) |
-| `IDomainEventPublisher` | Shared | Shared | in-process events, e.g. Clinical's `FollowUpScheduled` → Reminders (next) |
+| `IDomainEventPublisher` | Shared | Shared | in-process events (see "Domain events" below) |
+| `IRulesService` | Maternal | Maternal | the A.5 table as versioned in-code data: schedule, EDD, risk level, triage |
+| `IPregnancyDirectory` | Maternal | Maternal | a pregnancy + its contacts without access checks — for Reminders' scheduling |
+| `IPregnancyReminderSource` | Maternal | Reminders | the `reminders` list in `GET /pregnancies/:id` (`[]` when not registered) |
+| `ISmsSender` | Shared | Reminders | outbound SMS: `MockSmsSender` (in memory + log) when `Features:SmsMode = mock`, else `UnconfiguredSmsSender` (fails — no gateway yet) |
 | `IPatientSummaryService`, `IPatientTimelineService` | Patients | Patients | redeem bundle (Grants) |
 
 Multiple implementations of a contribution interface are all resolved (`IEnumerable<T>`); with none
 registered the feature degrades to the empty shape (e.g. an empty timeline page), never to an error.
+
+### Domain events
+
+Published with `IDomainEventPublisher` after the producing module's own `SaveChanges` (and audit line);
+handlers run in-process in the same scope, and a failing handler is logged without failing the request.
+Events carry ids and dates only — no clinical findings reach the event log.
+
+| Event | Owner | Raised when | Reminders does |
+|---|---|---|---|
+| `FollowUpScheduled` | Clinical | a visit with `followUpAt` is stored (and by the seed for seeded visits) | schedules `follow_up` |
+| `VisitSuperseded` | Clinical | a visit with `supersedesId` is stored | cancels the replaced visit's pending `follow_up` |
+| `PregnancyRegistered` | Maternal | a pregnancy and its 8 contacts are stored | schedules `anc_due` / `anc_missed` for every contact still ahead |
+| `AncContactRecorded` | Maternal | a contact is recorded or re-recorded | cancels that contact's pending reminders |
+| `PregnancyClosed` | Maternal | delivery recorded, or `status: ended` | cancels everything pending for the pregnancy |
+
+Scheduling is idempotent on (`sourceKey`, recipient phone) — unique index — so a repeated event or a
+re-run seed adds nothing. Sync (session 4) must apply pushed changes through the same services, so that
+these events are raised for records that arrive by `/sync/push` too.
 
 ## 3. How to add a module
 
@@ -97,7 +124,7 @@ registered the feature degrades to the empty shape (e.g. an empty timeline page)
 3. `FooDbContext` (internal) with `public const string Schema = "foo"` and `b.HasDefaultSchema(Schema)`.
    Register with `services.AddModuleDbContext<FooDbContext>(config, FooDbContext.Schema)`.
 4. `FooModuleInitializer : IModuleInitializer` (`Order` after the modules it seeds on top of;
-   Catalog 10, Auth 20, Patients 30) — `MigrateAsync` = `db.Database.MigrateAsync`, `SeedAsync`
+   Catalog 10, Auth 20, Patients 30, Clinical 40, Maternal 50, Reminders 60) — `MigrateAsync` = `db.Database.MigrateAsync`, `SeedAsync`
    insert-if-missing.
 5. Validators: `services.AddValidatorsFromAssemblyContaining<FooModule>(includeInternalTypes: true)`,
    and `.Validate<TRequest>()` on every endpoint that has a body.
@@ -109,7 +136,7 @@ registered the feature degrades to the empty shape (e.g. an empty timeline page)
 ## 4. The DbContext-per-schema rule
 
 * Each module owns exactly one `DbContext`, mapped to exactly one PostgreSQL schema
-  (`auth`, `catalog`, `patients`, later `grants`, `clinical`, `maternal`, `reminders`, `sync`).
+  (`auth`, `catalog`, `patients`, `audit`, `grants`, `clinical`, `maternal`, `reminders`; later `sync`).
 * The migrations history lives in that schema too (`<schema>.__ef_migrations_history`), so modules
   migrate independently.
 * **No module opens another module's DbContext, joins across schemas, or holds a foreign key into
@@ -211,7 +238,7 @@ services.AddScoped<ITimelineContributor, ClinicalTimelineContributor>();
 * **Summary**: the Patients base fills `allergies` and `activeProblems` from `chronicConditions`
   (labelled via Catalog). Contributors then run in `Order` against a mutable `PatientSummaryBuilder`.
   Clinical dates the problems (`since`), adds visit diagnoses, and sets `currentMedicines`, `lastVitals`,
-  `lastVisitAt` and `visitCount`. Maternal (Order 20) will set `activePregnancy`.
+  `lastVisitAt` and `visitCount`. Maternal (Order 20) sets `activePregnancy`.
 * **Timeline**: each contributor returns its newest items strictly before the `before` cursor, at most
   `limit` of them. The service asks each for `limit + 1`, merges newest-first, cuts the page and
   returns `nextBefore` (null on the last page). Payload = the entity's own DTO, so no second call is
@@ -235,3 +262,23 @@ not change.
 * Download URLs are MinIO presigned GETs for the public endpoint, or signed `GET …/documents/:id/file`
   URLs for local bytes (1 h). Both work without a bearer token. Signed API URLs are
   HMAC-SHA256(`purpose:id:exp`) with a key derived from the access signing key.
+
+## 10. Reminders: scheduling and delivery
+
+* **Rows.** One `Reminder` per message per recipient (A.2), plus internal columns: `sourceKey`
+  (`anc_contact:{contactId}:due`, `anc_contact:{contactId}:missed:3|7`, `visit:{visitId}`), `cancelledAt`
+  (A.2 has no cancelled status — a cancelled row keeps its status and leaves every list), `attempts`,
+  `lastError`.
+* **Planning** (`ReminderPlanner`, pure): send time = 09:00 Asia/Kathmandu = 03:15 UTC; `anc_due` the day
+  before the contact, `anc_missed` 3 and 7 days after, `follow_up` the day before `followUpAt`. Texts come
+  from `ReminderTexts` (Nepali with the BS date via `BsCalendar`, English with the AD date).
+* **Scheduling** (`ReminderScheduler`): resolves recipients (owner account's phone; `emergencyContactPhone`
+  for ANC) and the facility name (the registering / recording health worker's), and inserts only messages
+  whose send time is still ahead.
+* **Delivery** (`ReminderDeliveryWorker` → `ReminderDispatcher`): a `BackgroundService` polls every
+  `Reminders:PollInterval` (60 s). Due = pending, not cancelled, `dueAt` ≤ now. Sent → `sent` + `sentAt`;
+  a throwing sender is retried on later polls (3 attempts), then `failed`; a row found more than 24 h late
+  is `failed` unsent. Rows are saved one at a time, so a crash mid-batch never re-sends. One process is
+  assumed — two API instances polling the same database would need a row claim first.
+* **Outbox page** (`DevSmsEndpoints`): `GET /dev/sms` (HTML) and `/dev/sms.json`, plus the A.4 names
+  `/demo/sms` and `/demo/sms.html`; mapped only in Development / Testing with the mock sender registered.
