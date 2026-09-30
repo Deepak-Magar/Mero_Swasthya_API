@@ -91,6 +91,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Features:SmsMode", "mock");
         builder.UseSetting("Features:OtpDemo", "true");
         builder.UseSetting("Features:AiMode", "off");
+        // The tests run the dispatcher themselves; a background poll would race them for the same rows.
+        builder.UseSetting("Reminders:WorkerEnabled", "false");
         builder.UseSetting("Database:MigrateOnStartup", "true");
         builder.UseSetting("Database:SeedOnStartup", "true");
         builder.UseSetting("Serilog:MinimumLevel:Default", "Warning");

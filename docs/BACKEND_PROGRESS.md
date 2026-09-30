@@ -214,12 +214,12 @@ SMOKE PASSED
   1 day before). Takes over OTP SMS when `SmsMode != mock` (TODO in AuthService).
 * Seed: Sita's two `anc_due` reminders shown by `/demo/sms`.
 
-## 6. Session 3 (in progress — feature 10 of 13 done, 2026-09-30)
+## 6. Session 3 (in progress — feature 11 of 13 done, 2026-09-30)
 
 Session 3 (Maternal + Reminders) was paused after feature 9 on 2026-09-29 and resumed on 2026-09-30.
 Each feature is one commit on `main`.
 
-**Done (features 1–10)**
+**Done (features 1–11)**
 1. Maternal module skeleton (schema `maternal`, DbContext, initializer order 50).
 2. Versioned ANC rules service — the A.5 table as in-code data (`AncRules`, version `2026-09-18.1`),
    `IRulesService` (schedule, EDD/LMP, gestational age, risk level); a unit test pins it to the
@@ -272,6 +272,18 @@ Each feature is one commit on `main`.
       `FollowUpScheduled` for his latest visit.
     * Not handled: a phone number or emergency contact changed after scheduling does not move reminders
       that already exist.
+11. Delivery. `ReminderDeliveryWorker` (`BackgroundService`) polls every 60 s, first poll right after
+    startup, and hands each due reminder (pending, not cancelled, `dueAt` ≤ now) to `ISmsSender`
+    (`MeroSwasthya.Shared.Sms`, so Auth can use it for the OTP later). The Nepali text is what goes out.
+    * `Features:SmsMode = mock` → `MockSmsSender`: logs every message and keeps the newest 200 in memory
+      (lost on restart). Any other mode → `UnconfiguredSmsSender`, which fails every send: there is no
+      gateway yet, and a reminder must not be reported `sent` when nothing left the machine.
+    * Sent → `status: sent`, `sentAt`. A send that throws is retried on the next polls, 3 attempts in all,
+      then `status: failed` (`attempts`, `lastError` kept internally). A reminder found more than 24 h after
+      its `dueAt` (server was down) is `failed` unsent — no "check-up tomorrow" arriving days late.
+    * Config: `Reminders:WorkerEnabled` (default `true`), `Reminders:PollInterval` (default `00:01:00`).
+      The contract tests switch the worker off and run the dispatcher (or their own 50 ms worker) themselves.
+      `--migrate` / `--seed` exit before the worker starts.
 
 **Shape decisions made in feature 9**
 * *Cancel = internal `cancelledAt`.* A.2 fixes `Reminder.status` to `pending | sent | failed` and the
@@ -285,9 +297,7 @@ Each feature is one commit on `main`.
   `GET /pregnancies/:id` is `[]` until the Reminders module registers — the same pattern as
   `IActivePregnancySource`.
 
-**Remaining (features 11–13)**
-11. Delivery worker: `BackgroundService` polling due reminders every 60 s through `ISmsSender`;
-    `MockSmsSender` (in-memory + log) in development.
+**Remaining (features 12–13)**
 12. `GET /dev/sms` (HTML) + `GET /dev/sms.json` (development only; A.4 names them `/demo/sms`); contract
     tests for reminders.
 13. `scripts/smoke.ps1` (pregnancy → red contact → delivery → reminders), this document, and
@@ -296,5 +306,5 @@ Each feature is one commit on `main`.
 Still open from earlier sessions: the three dashboard women with pre-redeemed grants (Grants seed),
 Aarav's immunisation schedule and growth measurements (addendum §1–2), Sync (Session 4).
 
-Test count after feature 10: `dotnet test` → 385 tests (138 unit + 247 contract), all passing against the
-local PostgreSQL cluster on :5433 (no Docker on this machine). (At the pause after feature 9: 362.)
+Test count after feature 11: `dotnet test` → 396 tests (142 unit + 254 contract), all passing against the
+local PostgreSQL cluster on :5433 (no Docker on this machine). (After feature 9: 362; after feature 10: 385.)
