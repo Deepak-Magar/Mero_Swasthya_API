@@ -43,13 +43,20 @@ internal sealed class ReminderScheduler(
     /// <summary>
     /// Seed only: the <c>anc_due</c> of the next contact when its send time has already passed, stored as
     /// sent — the A.2 example (Sita's contact is due today, the SMS went out yesterday at 09:00).
+    /// Returns those messages, for the mock outbox.
     /// </summary>
-    public async Task BackfillSentAncDueAsync(string pregnancyId, CancellationToken ct)
+    public async Task<IReadOnlyList<SentSms>> BackfillSentAncDueAsync(string pregnancyId, CancellationToken ct)
     {
         var plan = await PlanPregnancyAsync(pregnancyId, ct);
         var next = plan?.Planned.FirstOrDefault(p => p.Kind == ReminderKind.AncDue);
-        if (next is null || next.DueAt > clock.UtcNow) return;
+        if (next is null || next.DueAt > clock.UtcNow) return [];
         await AddMissingAsync(plan!.Value.Patient.Id, pregnancyId, [next], plan.Value.Recipients, sent: true, ct);
+
+        var sent = await db.Reminders.AsNoTracking()
+            .Where(r => r.SourceKey == next.SourceKey && r.Status == ReminderStatus.Sent && r.SentAt != null)
+            .OrderBy(r => r.RecipientRole).ThenBy(r => r.Id)
+            .ToListAsync(ct);
+        return sent.Select(r => new SentSms(r.RecipientPhone, r.MessageNp, r.SentAt!.Value)).ToList();
     }
 
     /// <summary>A.5 <c>follow_up</c>: the day before <c>Visit.followUpAt</c>, to the patient's phone.</summary>

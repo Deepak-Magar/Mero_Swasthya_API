@@ -3,7 +3,6 @@ using MeroSwasthya.ContractTests.Infrastructure;
 using MeroSwasthya.Modules.Reminders.Application;
 using MeroSwasthya.Modules.Reminders.Infrastructure;
 using MeroSwasthya.Shared.Sms;
-using MeroSwasthya.Shared.Time;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -49,24 +48,11 @@ public sealed class ReminderDeliveryTests
         (await _api.Get($"/patients/{family.PatientId}/reminders", family.Owner.AccessToken)).Data()["items"]!.AsArray()
         .Should().ContainSingle().Subject!.AsObject();
 
-    /// <summary>"Time travel": the reminder became due <paramref name="ago"/> ago.</summary>
-    private Task MakeDue(Family family, TimeSpan ago) =>
-        _factory.ExecuteSqlAsync("update reminders.reminders set due_at = @due where patient_id = @patient",
-            ("due", DateTime.UtcNow - ago), ("patient", family.PatientId));
+    private Task MakeDue(Family family, TimeSpan ago) => _s.MakeRemindersDue(family.PatientId, ago);
 
-    private async Task<DispatchResult> Dispatch(ISmsSender? sender = null)
-    {
-        await using var scope = _factory.Services.CreateAsyncScope();
-        var services = scope.ServiceProvider;
-        var dispatcher = sender is null
-            ? services.GetRequiredService<ReminderDispatcher>()
-            : new ReminderDispatcher(services.GetRequiredService<RemindersDbContext>(), sender,
-                services.GetRequiredService<IClock>(), NullLogger<ReminderDispatcher>.Instance);
-        return await dispatcher.DispatchDueAsync(CancellationToken.None);
-    }
+    private Task<DispatchResult> Dispatch(ISmsSender? sender = null) => _s.DispatchReminders(sender);
 
-    private List<SentSms> Outbox(string phone) =>
-        _factory.Services.GetRequiredService<MockSmsSender>().Sent().Where(m => m.To == phone).ToList();
+    private List<SentSms> Outbox(string phone) => _s.Outbox(phone);
 
     [Fact]
     public void The_test_host_sends_through_the_mock_outbox()

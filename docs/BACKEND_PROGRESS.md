@@ -214,12 +214,12 @@ SMOKE PASSED
   1 day before). Takes over OTP SMS when `SmsMode != mock` (TODO in AuthService).
 * Seed: Sita's two `anc_due` reminders shown by `/demo/sms`.
 
-## 6. Session 3 (in progress — feature 11 of 13 done, 2026-09-30)
+## 6. Session 3 (in progress — feature 12 of 13 done, 2026-09-30)
 
 Session 3 (Maternal + Reminders) was paused after feature 9 on 2026-09-29 and resumed on 2026-09-30.
 Each feature is one commit on `main`.
 
-**Done (features 1–11)**
+**Done (features 1–12)**
 1. Maternal module skeleton (schema `maternal`, DbContext, initializer order 50).
 2. Versioned ANC rules service — the A.5 table as in-code data (`AncRules`, version `2026-09-18.1`),
    `IRulesService` (schedule, EDD/LMP, gestational age, risk level); a unit test pins it to the
@@ -284,6 +284,19 @@ Each feature is one commit on `main`.
     * Config: `Reminders:WorkerEnabled` (default `true`), `Reminders:PollInterval` (default `00:01:00`).
       The contract tests switch the worker off and run the dispatcher (or their own 50 ms worker) themselves.
       `--migrate` / `--seed` exit before the worker starts.
+12. Mock SMS outbox page: `GET /api/v1/dev/sms` (HTML table — sent at in Nepal time, to, text; refreshes
+    every 5 s; all text HTML-escaped) and `GET /api/v1/dev/sms.json` (`{ items: [{ to, text, sentAt }] }`,
+    newest first). The same two handlers also answer under the A.4 names, because the app calls
+    `GET /demo/sms`: `GET /api/v1/demo/sms` (JSON) and `GET /api/v1/demo/sms.html`. No auth. Mapped only in
+    Development (and the tests' `Testing` environment) **and** only while `Features:SmsMode = mock`;
+    anywhere else all four are `404`.
+    * The page shows `MockSmsSender`'s memory. The seed puts Sita's two already-sent `anc_due` messages into
+      it on every start (idempotent), so the panel is never empty — as `mock_api.dart`'s `/demo/sms`.
+    * Contract tests: outbox shape / order / no auth, seeded messages once even after a re-seed, the A.4
+      alias, the HTML page (escaping, refresh), and `POST /reminders/:id/done` / `cancel` (happy path,
+      idempotency, cancel-after-sent → 422, append access).
+    * `GrantAndStorageTests.MinIO_presigned_urls…` asserted `X-Amz-Expires=900` exactly and failed on a cold
+      first run (899: the SDK subtracts the time the call itself took). It now accepts 890–900 / 3590–3600.
 
 **Shape decisions made in feature 9**
 * *Cancel = internal `cancelledAt`.* A.2 fixes `Reminder.status` to `pending | sent | failed` and the
@@ -297,14 +310,12 @@ Each feature is one commit on `main`.
   `GET /pregnancies/:id` is `[]` until the Reminders module registers — the same pattern as
   `IActivePregnancySource`.
 
-**Remaining (features 12–13)**
-12. `GET /dev/sms` (HTML) + `GET /dev/sms.json` (development only; A.4 names them `/demo/sms`); contract
-    tests for reminders.
+**Remaining (feature 13)**
 13. `scripts/smoke.ps1` (pregnancy → red contact → delivery → reminders), this document, and
     `docs/APP_INTEGRATION.md` where an endpoint shape needs a note for the Flutter side.
 
 Still open from earlier sessions: the three dashboard women with pre-redeemed grants (Grants seed),
 Aarav's immunisation schedule and growth measurements (addendum §1–2), Sync (Session 4).
 
-Test count after feature 11: `dotnet test` → 396 tests (142 unit + 254 contract), all passing against the
-local PostgreSQL cluster on :5433 (no Docker on this machine). (After feature 9: 362; after feature 10: 385.)
+Test count after feature 12: `dotnet test` → 410 tests (149 unit + 261 contract), all passing against the
+local PostgreSQL cluster on :5433 (no Docker on this machine). (After feature 9: 362; 10: 385; 11: 396.)

@@ -100,11 +100,14 @@ public sealed class GrantAndStorageTests
 
         var put = new Uri(store.PresignPut("patients/p_1/d_1.jpg", "image/jpeg"));
         put.GetLeftPart(UriPartial.Path).Should().Be("http://192.168.1.20:9000/swc-documents/patients/p_1/d_1.jpg");
-        put.Query.Should().Contain("X-Amz-Algorithm=AWS4-HMAC-SHA256").And.Contain("X-Amz-Expires=900").And.Contain("X-Amz-Signature=");
+        put.Query.Should().Contain("X-Amz-Algorithm=AWS4-HMAC-SHA256").And.Contain("X-Amz-Signature=");
+        // The SDK turns "now + 15 min" into whole seconds against its own clock read, so a slow (cold) first
+        // call yields 899 or a little less — 15 minutes give or take the time the call itself took.
+        put.Query.Should().MatchRegex("X-Amz-Expires=(900|89[0-9])(&|$)");
 
         var get = new Uri(store.PresignGet("patients/p_1/d_1.jpg"));
         get.Host.Should().Be("192.168.1.20");
-        get.Query.Should().Contain("X-Amz-Expires=3600");
+        get.Query.Should().MatchRegex("X-Amz-Expires=(3600|359[0-9])(&|$)");
     }
 
     [Fact]

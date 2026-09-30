@@ -1,6 +1,12 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json.Nodes;
+using MeroSwasthya.Modules.Reminders.Application;
+using MeroSwasthya.Modules.Reminders.Infrastructure;
+using MeroSwasthya.Shared.Sms;
+using MeroSwasthya.Shared.Time;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace MeroSwasthya.ContractTests.Infrastructure;
 
@@ -113,6 +119,27 @@ public sealed class Scenario(ApiFactory factory, ApiClient api)
 
     public Task SetGrantColumn(string grantId, string column, string sqlValue) =>
         factory.ExecuteSqlAsync($"update grants.access_grants set {column} = {sqlValue} where id = @id", ("id", grantId));
+
+    /// <summary>"Time travel": every reminder of the patient became due <paramref name="ago"/> ago.</summary>
+    public Task MakeRemindersDue(string patientId, TimeSpan ago) =>
+        factory.ExecuteSqlAsync("update reminders.reminders set due_at = @due where patient_id = @patient",
+            ("due", DateTime.UtcNow - ago), ("patient", patientId));
+
+    /// <summary>One poll of the delivery worker (switched off in the test host), optionally through another gateway.</summary>
+    internal async Task<DispatchResult> DispatchReminders(ISmsSender? sender = null)
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        var services = scope.ServiceProvider;
+        var dispatcher = sender is null
+            ? services.GetRequiredService<ReminderDispatcher>()
+            : new ReminderDispatcher(services.GetRequiredService<RemindersDbContext>(), sender,
+                services.GetRequiredService<IClock>(), NullLogger<ReminderDispatcher>.Instance);
+        return await dispatcher.DispatchDueAsync(CancellationToken.None);
+    }
+
+    /// <summary>What the mock SMS outbox holds for one phone, newest first.</summary>
+    internal List<SentSms> Outbox(string phone) =>
+        factory.Services.GetRequiredService<MockSmsSender>().Sent().Where(m => m.To == phone).ToList();
 
     public async Task<List<string>> AuditActions(Family family) =>
         (await api.Get($"/patients/{family.PatientId}/audit", family.Owner.AccessToken)).Data()["items"]!.AsArray()

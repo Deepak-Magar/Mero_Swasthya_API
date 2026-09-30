@@ -53,5 +53,9 @@ public sealed class RemindersModule : IModule
         if (delivery.WorkerEnabled) services.AddHostedService<ReminderDeliveryWorker>();
     }
 
-    public void MapEndpoints(IEndpointRouteBuilder api) => ReminderEndpoints.Map(api);
+    public void MapEndpoints(IEndpointRouteBuilder api)
+    {
+        ReminderEndpoints.Map(api);
+        DevSmsEndpoints.Map(api);
+    }
 }

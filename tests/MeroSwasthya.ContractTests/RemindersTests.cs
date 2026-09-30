@@ -114,6 +114,60 @@ public sealed class RemindersTests
     }
 
     [Fact]
+    public async Task Done_marks_a_pending_reminder_sent_and_cancel_takes_one_out_of_the_lists()
+    {
+        var family = await _s.NewFamily();
+        var worker = await _s.WorkerWithGrant(family);
+        var pregnancyId = await Register(family, worker, Today.AddDays(-200));
+        var reminders = await Reminders(family.PatientId, worker);
+        reminders.Should().HaveCount(15);
+        var (doneId, cancelId) = (Text(reminders[0], "id"), Text(reminders[1], "id"));
+
+        // Done: delivered another way — sent now, still listed.
+        var done = (await _api.Post($"/reminders/{doneId}/done", null, worker.AccessToken)).Data();
+        JsonAssert.HasExactKeys(done, "reminder");
+        JsonAssert.HasExactKeys(done["reminder"], ReminderKeys);
+        Text(done["reminder"], "status").Should().Be("sent");
+        JsonAssert.IsIsoTimestamp(done["reminder"]!["sentAt"]);
+        JsonAssert.DeepEqual((await _api.Post($"/reminders/{doneId}/done", null, family.Owner.AccessToken)).Data(), done);
+        (await _api.Post($"/reminders/{doneId}/cancel", null, worker.AccessToken)).Error(HttpStatusCode.UnprocessableEntity, "RULE_VIOLATION");
+
+        // Cancel: keeps its A.2 status (there is no "cancelled"), leaves the lists; idempotent.
+        var cancelled = (await _api.Post($"/reminders/{cancelId}/cancel", null, family.Owner.AccessToken)).Data();
+        JsonAssert.HasExactKeys(cancelled["reminder"], ReminderKeys);
+        Text(cancelled["reminder"], "status").Should().Be("pending");
+        JsonAssert.DeepEqual((await _api.Post($"/reminders/{cancelId}/cancel", null, worker.AccessToken)).Data(), cancelled);
+
+        var after = await Reminders(family.PatientId, worker);
+        after.Should().HaveCount(14);
+        after.Select(r => Text(r, "id")).Should().Contain(doneId).And.NotContain(cancelId);
+        after.Single(r => Text(r, "id") == doneId)["status"]!.GetValue<string>().Should().Be("sent");
+        (await _api.Get($"/pregnancies/{pregnancyId}", worker.AccessToken)).Data()["reminders"]!.AsArray()
+            .Select(r => Text(r, "id")).Should().HaveCount(14).And.NotContain(cancelId);
+    }
+
+    [Fact]
+    public async Task Done_and_cancel_need_append_access()
+    {
+        var family = await _s.NewFamily();
+        await Visit(family, family.Owner, Today.AddDays(10));
+        var id = Text((await Reminders(family.PatientId, family.Owner)).Should().ContainSingle().Subject, "id");
+        var stranger = await TestUsers.NewAccount(_api);
+        var reader = await _s.WorkerWithGrant(family, scope: "read");
+
+        foreach (var action in new[] { "done", "cancel" })
+        {
+            (await _api.Post($"/reminders/{id}/{action}", null, stranger.AccessToken)).Error(HttpStatusCode.Forbidden, "FORBIDDEN");
+            (await _api.Post($"/reminders/{id}/{action}", null, reader.AccessToken)).Error(HttpStatusCode.Forbidden, "FORBIDDEN");
+            (await _api.Post($"/reminders/{id}/{action}")).Error(HttpStatusCode.Unauthorized, "UNAUTHENTICATED");
+        }
+
+        var untouched = (await Reminders(family.PatientId, reader)).Should().ContainSingle().Subject;
+        Text(untouched, "status").Should().Be("pending");
+        untouched["sentAt"].Should().BeNull();
+    }
+
+    [Fact]
     public async Task Registering_a_pregnancy_schedules_due_and_missed_for_every_contact_to_the_patient_and_the_emergency_contact()
     {
         var (family, ownerPhone, familyPhone) = await FamilyWithEmergencyContact();

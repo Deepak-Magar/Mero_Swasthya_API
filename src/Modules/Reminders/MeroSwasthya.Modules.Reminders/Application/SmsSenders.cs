@@ -30,10 +30,23 @@ internal sealed class MockSmsSender(IClock clock, ILogger<MockSmsSender> logger)
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Seed only: shows a message that the seed stored as already sent (it never went through
+    /// <see cref="SendAsync"/>). Adding the same message again — a re-run seed — changes nothing.
+    /// </summary>
+    public void Remember(SentSms message)
+    {
+        lock (_gate)
+        {
+            if (_sent.Count >= Capacity || _sent.Contains(message)) return;
+            _sent.AddLast(message);
+        }
+    }
+
     /// <summary>Newest first.</summary>
     public IReadOnlyList<SentSms> Sent()
     {
-        lock (_gate) return _sent.ToList();
+        lock (_gate) return _sent.OrderByDescending(m => m.SentAt).ToList();
     }
 }
 
