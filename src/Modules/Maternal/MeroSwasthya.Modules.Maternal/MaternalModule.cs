@@ -32,6 +32,7 @@ public sealed class MaternalModule : IModule
         services.AddScoped<IPatientSummaryContributor, MaternalSummaryContributor>();
         services.AddScoped<ITimelineContributor, MaternalTimelineContributor>();
         services.AddScoped<IActivePregnancySource, ActivePregnancySource>();
+        services.AddScoped<IPregnancyDirectory, PregnancyDirectory>();
         services.AddScoped<IModuleInitializer, MaternalModuleInitializer>();
         services.AddValidatorsFromAssemblyContaining<MaternalModule>(includeInternalTypes: true);
     }

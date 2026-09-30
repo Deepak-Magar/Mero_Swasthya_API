@@ -81,3 +81,9 @@ public sealed record DocumentDto(
 /// (A.5 reminders.follow_up: "Send 1 day before Visit.followUpAt to patient phone").
 /// </summary>
 public sealed record FollowUpScheduled(string VisitId, string PatientId, DateOnly FollowUpAt, string ProviderUserId) : IDomainEvent;
+
+/// <summary>
+/// Raised after a correction (a visit with <c>supersedesId</c>) is stored. Reminders cancels the
+/// pending follow-up of the visit that was replaced; the correction schedules its own.
+/// </summary>
+public sealed record VisitSuperseded(string SupersededVisitId, string PatientId, string ByVisitId) : IDomainEvent;

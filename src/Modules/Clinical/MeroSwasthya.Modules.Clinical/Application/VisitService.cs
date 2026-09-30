@@ -99,6 +99,8 @@ internal sealed class VisitService(
         }
 
         await audit.WriteAsync(patientId, AuditAction.VisitAdded, ct);
+        if (visit.SupersedesId is { } superseded)
+            await events.PublishAsync(new VisitSuperseded(superseded, patientId, visit.Id), ct);
         if (visit.FollowUpAt is { } followUp)
             await events.PublishAsync(new FollowUpScheduled(visit.Id, patientId, followUp, user.Id), ct);
         return visit.ToDto();

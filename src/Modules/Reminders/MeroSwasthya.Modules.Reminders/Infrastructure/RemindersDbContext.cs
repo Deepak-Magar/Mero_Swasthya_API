@@ -1,3 +1,4 @@
+using MeroSwasthya.Modules.Reminders.Application;
 using MeroSwasthya.Modules.Reminders.Domain;
 using MeroSwasthya.Shared.Json;
 using Microsoft.EntityFrameworkCore;
@@ -38,8 +39,16 @@ internal sealed class RemindersDbContext(DbContextOptions<RemindersDbContext> op
     }
 }
 
-internal sealed class RemindersModuleInitializer(RemindersDbContext db) : Shared.Modules.IModuleInitializer
+/// <summary>
+/// Migrates schema <c>reminders</c> and schedules the reminders of the seeded pregnancy (Sita, week 30,
+/// contact 4 due on the seed day): the two <c>anc_due</c> messages for contact 4 — to her phone and to the
+/// emergency contact — as already sent yesterday at 09:00 Nepal time (the A.2 example), and everything
+/// still ahead as pending. Ram's <c>follow_up</c> comes from the event the Clinical seed publishes.
+/// </summary>
+internal sealed class RemindersModuleInitializer(RemindersDbContext db, ReminderScheduler scheduler) : Shared.Modules.IModuleInitializer
 {
+    public const string SitaPregnancyId = "pg_b2b2b2b2-0000-4000-8000-000000000001";
+
     public string Module => "reminders";
 
     /// <summary>After Maternal (50): the seeded reminders come from the seeded pregnancy.</summary>
@@ -47,5 +56,10 @@ internal sealed class RemindersModuleInitializer(RemindersDbContext db) : Shared
 
     public Task MigrateAsync(CancellationToken ct) => db.Database.MigrateAsync(ct);
 
-    public Task SeedAsync(CancellationToken ct) => Task.CompletedTask;
+    public async Task SeedAsync(CancellationToken ct)
+    {
+        // The seeded pregnancy never went through PregnancyService, so no PregnancyRegistered was raised.
+        await scheduler.SchedulePregnancyAsync(SitaPregnancyId, ct);
+        await scheduler.BackfillSentAncDueAsync(SitaPregnancyId, ct);
+    }
 }

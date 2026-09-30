@@ -4,6 +4,7 @@ using MeroSwasthya.Modules.Maternal.Domain;
 using MeroSwasthya.Modules.Maternal.Infrastructure;
 using MeroSwasthya.Modules.Patients.Domain;
 using MeroSwasthya.Shared.Errors;
+using MeroSwasthya.Shared.Events;
 using MeroSwasthya.Shared.Ids;
 using MeroSwasthya.Shared.Json;
 using MeroSwasthya.Shared.Security;
@@ -44,6 +45,7 @@ internal sealed class PregnancyService(
     IRulesService rules,
     IFacilityDirectory facilities,
     IEnumerable<IPregnancyReminderSource> reminderSources,
+    IDomainEventPublisher events,
     IClock clock)
 {
     public async Task<PregnancyCreatedResponse> CreateAsync(string patientId, CreatePregnancyRequest request, CancellationToken ct)
@@ -113,6 +115,7 @@ internal sealed class PregnancyService(
         }
 
         await access.WroteAsync(patientId, ct);
+        await events.PublishAsync(new PregnancyRegistered(pregnancy.Id, patientId), ct); // A.4: "… and the Reminders"
         return new PregnancyCreatedResponse(pregnancy.ToDto(contacts, rules, clock.TodayUtc), contacts.Select(c => c.ToDto()).ToList());
     }
 
@@ -178,6 +181,8 @@ internal sealed class PregnancyService(
             throw AppException.VersionConflict(current.ToDto(contacts, rules, today));
         }
         await access.WroteAsync(pregnancy.PatientId, ct);
+        if (pregnancy.Status != PregnancyStatus.Active)
+            await events.PublishAsync(new PregnancyClosed(pregnancy.Id, pregnancy.PatientId), ct);
         return pregnancy.ToDto(contacts, rules, today);
     }
 

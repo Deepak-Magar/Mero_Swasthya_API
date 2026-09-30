@@ -3,6 +3,7 @@ using MeroSwasthya.Modules.Maternal.Contracts;
 using MeroSwasthya.Modules.Maternal.Domain;
 using MeroSwasthya.Modules.Maternal.Infrastructure;
 using MeroSwasthya.Shared.Errors;
+using MeroSwasthya.Shared.Events;
 using MeroSwasthya.Shared.Json;
 using MeroSwasthya.Shared.Security;
 using MeroSwasthya.Shared.Time;
@@ -59,6 +60,7 @@ internal sealed class DeliveryService(
     MaternalAccess access,
     ICurrentUser currentUser,
     IRulesService rules,
+    IDomainEventPublisher events,
     IClock clock)
 {
     public async Task<DeliveryRecordedResponse> RecordAsync(string pregnancyId, RecordDeliveryRequest request, CancellationToken ct)
@@ -123,6 +125,7 @@ internal sealed class DeliveryService(
         }
 
         await access.WroteAsync(pregnancy.PatientId, ct);
+        await events.PublishAsync(new PregnancyClosed(pregnancy.Id, pregnancy.PatientId), ct);
         return new DeliveryRecordedResponse(delivery.ToDto(), pregnancy.ToDto(contacts, rules, clock.TodayUtc));
     }
 

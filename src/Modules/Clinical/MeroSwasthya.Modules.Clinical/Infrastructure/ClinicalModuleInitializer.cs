@@ -1,6 +1,7 @@
 using MeroSwasthya.Modules.Clinical.Application;
 using MeroSwasthya.Modules.Clinical.Contracts;
 using MeroSwasthya.Modules.Clinical.Domain;
+using MeroSwasthya.Shared.Events;
 using MeroSwasthya.Shared.Modules;
 using MeroSwasthya.Shared.Time;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,7 @@ namespace MeroSwasthya.Modules.Clinical.Infrastructure;
 internal sealed class ClinicalModuleInitializer(
     ClinicalDbContext db,
     DocumentStorage storage,
+    IDomainEventPublisher events,
     IClock clock,
     ILogger<ClinicalModuleInitializer> logger) : IModuleInitializer
 {
@@ -97,7 +99,12 @@ internal sealed class ClinicalModuleInitializer(
             if (!await db.Visits.AnyAsync(v => v.Id == visit.Id, ct))
                 db.Visits.Add(visit);
         await db.SaveChangesAsync(ct);
-        // TODO(Reminders): the follow_up reminder for Ram's latest visit comes from the FollowUpScheduled subscriber.
+
+        // Seeded visits never went through VisitService, so announce their follow-ups here (every run;
+        // the Reminders subscriber is idempotent and skips a follow-up whose send time has passed).
+        foreach (var visit in visits)
+            if (visit.FollowUpAt is { } followUp)
+                await events.PublishAsync(new FollowUpScheduled(visit.Id, visit.PatientId, followUp, visit.ProviderUserId), ct);
 
         await SeedDocumentAsync(RamLabDocumentId, DocumentType.Lab, "Fasting blood sugar", today.AddDays(-40), now, ct);
         await SeedDocumentAsync(RamDischargeDocumentId, DocumentType.Discharge, "Bharatpur Hospital discharge sheet",

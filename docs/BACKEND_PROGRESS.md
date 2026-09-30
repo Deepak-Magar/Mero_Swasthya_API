@@ -1,7 +1,8 @@
 # Backend progress
 
-Session 2 of 4 (≈ 50 %). Session 1: foundation, Auth, Catalog, Patients. Session 2: **Grants**,
-**Clinical** (visits + documents) and **Audit**. Remaining modules are registered placeholders.
+Session 3 of 4 in progress (see §6). Session 1: foundation, Auth, Catalog, Patients. Session 2: **Grants**,
+**Clinical** (visits + documents) and **Audit**. Session 3: **Maternal** and **Reminders**. Sync is a
+registered placeholder.
 
 ## 1. Module status
 
@@ -212,3 +213,88 @@ SMOKE PASSED
   Maternal; A.5 schedule (anc_due 1 day before 09:00 Asia/Kathmandu, anc_missed +3 d / +7 d, follow_up
   1 day before). Takes over OTP SMS when `SmsMode != mock` (TODO in AuthService).
 * Seed: Sita's two `anc_due` reminders shown by `/demo/sms`.
+
+## 6. Session 3 (in progress — feature 10 of 13 done, 2026-09-30)
+
+Session 3 (Maternal + Reminders) was paused after feature 9 on 2026-09-29 and resumed on 2026-09-30.
+Each feature is one commit on `main`.
+
+**Done (features 1–10)**
+1. Maternal module skeleton (schema `maternal`, DbContext, initializer order 50).
+2. Versioned ANC rules service — the A.5 table as in-code data (`AncRules`, version `2026-09-18.1`),
+   `IRulesService` (schedule, EDD/LMP, gestational age, risk level); a unit test pins it to the
+   document Catalog serves at `GET /rules`.
+3. Triage engine mirroring the app's `lib/domain/rules/triage.dart` (same rule order, reason codes,
+   en/np texts); A.6 #1–#11 as unit tests.
+4. Pregnancy: `POST /patients/:id/pregnancies` (idempotent; female only → 422; one active per patient →
+   422; 8 contacts with `Ids.AncContactId`), `GET /pregnancies/:id`, `PATCH /pregnancies/:id`
+   (`version` → 409 `VERSION_CONFLICT` + `details.current`; only `status: "ended"` settable),
+   additive `GET /patients/:id/pregnancies`.
+5. ANC contacts: `PUT /pregnancies/:id/contacts/:contactNo` (server triage stored as level + English
+   reasons; `nearestReferral` = nearest other birthing facility from the recorder's facility, else the
+   birth-plan facility, else null; contactNo outside 1..8 → 422), additive `GET /pregnancies/:id/contacts`.
+   Catalog's `FacilityDto` moved to `Catalog.Contracts` (public) for the referral shape.
+6. Delivery: `POST /pregnancies/:id/delivery` closes the pregnancy (`delivered`); contacts never
+   recorded are soft-deleted (A.2 has no "not applicable" status). Patients plug-ins: summary
+   `activePregnancy`, redeem-bundle `pregnancy` / `ancContacts`, timeline kinds
+   `pregnancy_registered`, `anc_contact` (recorded only, badge = triage), `delivery`.
+7. Access + audit: every Maternal endpoint goes through `IPatientAccess`; non-owner reads → throttled
+   `record_viewed`; every Maternal write (register, patch, contact, delivery) is audited as
+   `contact_recorded` — the only maternal action in A.2, and the app's enum rejects unknown values.
+8. Contract tests (`PregnanciesTests`, `AncContactsTests`, `DeliveriesTests`, `MaternalAccessTests`,
+   `MaternalSeedTests`) and the seed: Sita's `pg_b2b2b2b2-…-0001`, LMP 210 days before today (week 30),
+   contacts 1–3 recorded by the seeded provider 18 / 10 / 4 weeks ago, all green (mirrors mock_api.dart).
+9. Reminders module skeleton: schema `reminders`, `Reminder` entity (+ internal `sourceKey`,
+   `cancelledAt`, `attempts`, `lastError`), `GET /patients/:id/reminders`, additive
+   `POST /reminders/:id/done` and `POST /reminders/:id/cancel`.
+10. Scheduling (A.5 `reminders`). Reminders subscribes to domain events: Maternal's `PregnancyRegistered`,
+    `AncContactRecorded`, `PregnancyClosed` (new, ids only — the schedule is read through
+    `Maternal.Contracts.IPregnancyDirectory`) and Clinical's `FollowUpScheduled` + new `VisitSuperseded`.
+    * `anc_due` the day before the contact, `anc_missed` 3 and 7 days after it, `follow_up` the day before
+      `followUpAt` — all at 09:00 Asia/Kathmandu = `03:15:00.000Z` (as the app's `reminders_preview.dart`;
+      the A.2 example's `03:00Z` is not 09:00 NPT).
+    * Recipients: "patient phone" = the phone of the account that owns the profile (`recipientRole: patient`);
+      ANC reminders also go to `emergencyContactPhone` (`family`) unless it is the same number. `follow_up`
+      goes to the patient phone only.
+    * Text: `anc_due` is the A.2 example word for word — Nepali with the BS date and Nepali digits
+      ("… ४ औं गर्भ जाँच २०८३-०६-०२ मा … छ।"), English with the AD date. BS conversion uses the month table of
+      the app's `nepali_utils` (BS 2080–2100). The facility is the one of the health worker who registered the
+      pregnancy / recorded the visit; a record the owner entered herself has no facility clause. Names stored
+      in Latin letters are set off from the postposition ("Sita Chaudhary को").
+    * Only messages whose send time is still ahead are created (no late SMS for a contact already past).
+      Idempotent on (`sourceKey`, recipient): a repeated event or a re-run seed adds nothing.
+    * Recording a contact cancels its pending `anc_missed` **and** `anc_due`; delivery or `status: ended`
+      cancels everything pending for the pregnancy; a visit with `supersedesId` cancels the replaced visit's
+      follow-up. Cancelled rows leave the lists (feature 9).
+    * Seed: Sita's contact 4 (due on the seed day) has its two `anc_due` rows — her phone and
+      `+9779801000009` — stored as `sent` yesterday 09:00 NPT (the A.2 example); contact 4's `anc_missed` and
+      everything for contacts 5–8 are `pending`. Ram's `follow_up` comes from the Clinical seed publishing
+      `FollowUpScheduled` for his latest visit.
+    * Not handled: a phone number or emergency contact changed after scheduling does not move reminders
+      that already exist.
+
+**Shape decisions made in feature 9**
+* *Cancel = internal `cancelledAt`.* A.2 fixes `Reminder.status` to `pending | sent | failed` and the
+  app's `ReminderStatus` enum accepts nothing else, so a cancelled reminder keeps its status, gets
+  `cancelledAt`, and leaves the patient's list (and `/pregnancies/:id.reminders`). *Done = sent now:*
+  `POST /reminders/:id/done` sets `status = sent`, `sentAt = now` (a message delivered another way,
+  e.g. the FCHV phoned). Both need append access; cancelling a sent reminder → 422.
+* *Reminders → Maternal via `IPregnancyReminderSource`.* Maternal owns the contract
+  (`Maternal.Contracts.IPregnancyReminderSource`, returns the A.2 Reminder DTOs for one pregnancy);
+  Reminders implements it. Maternal never references Reminders, so the `reminders` list in
+  `GET /pregnancies/:id` is `[]` until the Reminders module registers — the same pattern as
+  `IActivePregnancySource`.
+
+**Remaining (features 11–13)**
+11. Delivery worker: `BackgroundService` polling due reminders every 60 s through `ISmsSender`;
+    `MockSmsSender` (in-memory + log) in development.
+12. `GET /dev/sms` (HTML) + `GET /dev/sms.json` (development only; A.4 names them `/demo/sms`); contract
+    tests for reminders.
+13. `scripts/smoke.ps1` (pregnancy → red contact → delivery → reminders), this document, and
+    `docs/APP_INTEGRATION.md` where an endpoint shape needs a note for the Flutter side.
+
+Still open from earlier sessions: the three dashboard women with pre-redeemed grants (Grants seed),
+Aarav's immunisation schedule and growth measurements (addendum §1–2), Sync (Session 4).
+
+Test count after feature 10: `dotnet test` → 385 tests (138 unit + 247 contract), all passing against the
+local PostgreSQL cluster on :5433 (no Docker on this machine). (At the pause after feature 9: 362.)

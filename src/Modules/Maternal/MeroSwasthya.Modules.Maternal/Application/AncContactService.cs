@@ -4,6 +4,7 @@ using MeroSwasthya.Modules.Maternal.Contracts;
 using MeroSwasthya.Modules.Maternal.Domain;
 using MeroSwasthya.Modules.Maternal.Infrastructure;
 using MeroSwasthya.Shared.Errors;
+using MeroSwasthya.Shared.Events;
 using MeroSwasthya.Shared.Json;
 using MeroSwasthya.Shared.Security;
 using MeroSwasthya.Shared.Time;
@@ -72,6 +73,7 @@ internal sealed class AncContactService(
     ICurrentUser currentUser,
     IRulesService rules,
     IFacilityDirectory facilities,
+    IDomainEventPublisher events,
     IClock clock)
 {
     public const int NearestCandidates = 3;
@@ -127,6 +129,8 @@ internal sealed class AncContactService(
         contact.UpdatedAt = now;
         await db.SaveChangesAsync(ct);
         await access.WroteAsync(pregnancy.PatientId, ct); // A.4: "Writes AuditEntry contact_recorded."
+        // A.4: "Cancels pending anc_missed reminder for this contact."
+        await events.PublishAsync(new AncContactRecorded(pregnancy.Id, pregnancy.PatientId, contact.Id, contact.ContactNo), ct);
 
         var nearest = triage.Level == TriageLevel.Green ? null : await NearestReferralAsync(user, pregnancy, ct);
         return new ContactRecordedResponse(contact.ToDto(), nearest);

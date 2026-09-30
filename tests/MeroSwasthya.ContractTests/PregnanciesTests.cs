@@ -205,7 +205,14 @@ public sealed class PregnanciesTests
         JsonAssert.DeepEqual(data["pregnancy"], created["pregnancy"]);
         JsonAssert.DeepEqual(data["ancContacts"], created["ancContacts"]);
         data["delivery"].Should().BeNull();
-        data["reminders"]!.AsArray().Should().BeEmpty();
+        // Week 28: contacts 4–8 are still ahead, each with anc_due + two anc_missed to the owner's phone.
+        var reminders = data["reminders"]!.AsArray();
+        reminders.Should().HaveCount(15);
+        foreach (var reminder in reminders)
+        {
+            JsonAssert.HasExactKeys(reminder, RemindersTests.ReminderKeys);
+            reminder!["pregnancyId"]!.GetValue<string>().Should().Be(id);
+        }
 
         var list = (await _api.Get($"/patients/{family.PatientId}/pregnancies", family.Owner.AccessToken)).Data();
         JsonAssert.HasExactKeys(list, "items");

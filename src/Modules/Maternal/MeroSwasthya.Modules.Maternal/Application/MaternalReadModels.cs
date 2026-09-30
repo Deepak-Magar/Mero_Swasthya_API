@@ -23,6 +23,19 @@ internal sealed class ActivePregnancyQuery(MaternalDbContext db, IRulesService r
     }
 }
 
+/// <summary>Any pregnancy by id, without access checks — for the Reminders module's scheduling.</summary>
+internal sealed class PregnancyDirectory(MaternalDbContext db, IRulesService rules, IClock clock) : IPregnancyDirectory
+{
+    public async Task<PregnancySnapshot?> FindAsync(string pregnancyId, CancellationToken ct = default)
+    {
+        var pregnancy = await db.Pregnancies.AsNoTracking().FirstOrDefaultAsync(p => p.Id == pregnancyId && !p.Deleted, ct);
+        if (pregnancy is null) return null;
+
+        var contacts = (await db.AncContacts.AsNoTracking().Where(c => c.PregnancyId == pregnancyId).ToListAsync(ct)).Ordered();
+        return new PregnancySnapshot(pregnancy.ToDto(contacts, rules, clock.TodayUtc), contacts.Select(c => c.ToDto()).ToList());
+    }
+}
+
 /// <summary>A.4 summary.activePregnancy (Order 20, after Clinical).</summary>
 internal sealed class MaternalSummaryContributor(ActivePregnancyQuery query) : IPatientSummaryContributor
 {
